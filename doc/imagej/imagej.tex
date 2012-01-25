@@ -45,14 +45,18 @@ Set up Eclipse as follows:
 An image is a rectangular, two-dimensional grid of pixels, where each pixel represents the color at that location. In ImageJ, images are represented as objects of the class \texttt{ImagePlus}. This class provides methods for querying the image's width, height, pixel values, etc. 
 
 \subsection{Opening images}
-The easiest way to open an image is to call the constructor of ImagePlus as follows:
+The first step in most image processing applications is loading one or more images into memory. The Java standard library provides the method \co{ImageIO.read} for this purpose. The code snippet shown below illustrates loading an image into memory: 
 \begin{lstlisting}
-ImagePlus image = new ImagePlus("lena.png");
+File file = new File("lena.png");
+BufferedImage inMemoryImage = ImageIO.read(file);
+ImagePlus image = new ImagePlus(file.getName(), inMemoryImage);
 \end{lstlisting}
-The argument of this constructor is the url of the image file. This url can refer to a file on disk or to a network location. If the file cannot be accessed or is not a valid image, the constructor prints an error message on standard out.
+\co{ImageIO.read} throws an \co{IOExpception} when reading fails.  For example, this occurs when the given file does not exist, it is not a valid image or if the user does not have permission to read the file.
+
+For the code snippet shown above to compile, import statements must be added to the class containing this code. For example, the classes \co{File} and \co{IOException} are part of the package \co{java.io}, while \co{ImagePlus} is part of \co{ij}.
 
 \begin{exercise}
-Open an image and display its size. To do so, create a new class named \texttt{MyFirstImageProcessor} in the default package. Add a \texttt{main} method to this class that first opens the image located at  [TODO] and then prints the image's width and height using respectively the methods \co{getWidth} and \co{getHeight}.
+Open an image and display its size. To do so, create a new class named \texttt{MyFirstImageProcessor} in the default package. Add a \texttt{main} method to this class that first opens the image located at  [TODO] and then prints the image's width and height using respectively the methods \co{getWidth} and \co{getHeight}. If opening the file fails, the program should not crash, but an error message should be displayed.
 \end{exercise}
 
 \subsection{Displaying images}
@@ -116,14 +120,61 @@ ImageIO.write(img.getBufferedImage(), "png",
 \end{lstlisting}
 Note that \texttt{ImageIO.write} throws \texttt{IOException} when writing the image fails. For example, writing can fail because the current user does not have write permission or because the file is in use by another application.
 
-\begin{exercise}
+\begin{exercise}\label{ex:imageflipper2}
 Modify the class \texttt{ImageFlipper} from Exercise~\ref{ex:flipper} such that it saves the flipped image to disk to \texttt{out.png}. The application should not crash when \co{ImageIO.write} fails, but instead write an error message to standard output (i.e.  \texttt{System.out}).
 \end{exercise}
 
 \section{Getting user input}
-In all but the simplest applications, user input is required. For example, 
+In all but the simplest applications, user input is required. For example, the user can typically select the image to be processed and set the parameters of the image processing operation.
 
 \subsection{Command line arguments}
+A simple way to allow users to customize the behaviour of a program is using command-line arguments. As an example, consider the class \co{EchoNTimes} shown below. 
+\begin{lstlisting}
+class EchoNTimes {
+  public static void main(String[] args) {
+    if(args.length != 2) {
+      System.out.println("2 arguments expected");
+      return;
+    }
+    String text = args[0];
+    int n;
+    try {
+      n = Integer.parseInt(args[1]); 
+    } catch(NumberFormatException ex) {
+      System.out.println("not a number: " + args[2]);
+      return;     
+    }
+    for(int i = 0; i < n; i++) {
+      System.out.println(text);    
+    }
+  }
+}
+\end{lstlisting}
+This class prints a given string a certain number of times. For example, the output of the command
+\begin{verbatim}
+java EchoNTimes hello 3
+\end{verbatim}
+is
+\begin{verbatim}
+hello
+hello
+hello
+\end{verbatim}
+In Java, the command line arguments are passed to the \co{main} method as an array of \co{String}s via the \co{args} parameter. That is, \co{args.length} denotes the number of command line arguments and \co{args[i]} denotes the \co{i}th argument. For the command shown above, \co{args.length} is two, args[0] equals ``hello'' and args[1] equals ``3''. In lines 3 to 6, \co{EchoNTimes} checks that the user provides exactly two arguments. In line 7, the first argument is stored in the variable \co{text}. The second command line argument is converted to an integer via \co{Integer.parseInt} in lines 8 to 14. The method \co{Integer.parseInt} throws a \co{NumberFormatException} if the given string is not a number. \co{EchoNTimes} catches this potential exception via the try-catch block and prints an error message. Finally, the given text is printed n times in lines 15 to 17.
+
+Note that each primitive type in Java has a corresponding class. Each such class has a static method to convert a \co{String} to that type. As shown in the example above, the class \co{Integer} has the method \co{parseInt}. Similarly, the class \co{Double} has a method \co{parseDouble} and the class \co{Boolean} has a method \co{parseBoolean}.
+
+In Eclipse, command-line arguments can be passed to a program by clicking \texttt{Run>Run Configurations ...} and editing the \texttt{Program arguments} field as shown below:
+
+\includegraphics[scale=0.5]{arguments-eclipse.png} 
+
+\begin{exercise}\label{ex:imageflipper3}
+Modify the class \co{ImageFlipper} from Exercise~\ref{ex:imageflipper2} such that the input and output image can be passed as command line arguments. For example, the command
+\begin{verbatim}
+java ImageFlipper stevejobs.jpg steve-flipped.jpg 
+\end{verbatim}
+should flip the image of Steve Jobs upside down and saves the resulting image to \co{steve-flipped.jpg}.
+\end{exercise}
 
 \subsection{Standard input}
 
