@@ -2,14 +2,15 @@
 \usepackage{theorem}
 \usepackage{graphicx}
 \usepackage{hyperref}
+\usepackage{amsfonts}
 
 \newtheorem{exercise}{Exercise}
 
 
 \lstset{
   language=Java,
-  basicstyle=\ttfamily,
+  basicstyle=\ttfamily\footnotesize,
   numbers = left
 }
 
-\newcommand{\co}[1]{\lstinline{#1}}
+\newcommand{\co}[1]{\lstinline[language=Java, basicstyle=\ttfamily]{#1}}
