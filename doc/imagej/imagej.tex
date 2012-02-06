@@ -31,7 +31,7 @@ The ImageJ library is packaged as a jar file called \texttt{ij.jar}. This jar fi
 \begin{exercise}
 Set up Eclipse as follows:
 \begin{itemize}
-  \item Start Eclipse and create a new Java project called \texttt{digitalimageprocessing}.
+  \item Start Eclipse and create a new Java project named \texttt{digitalimageprocessing}.
   \item Add \texttt{ij.jar} to the classpath by right-clicking the project and selecting \texttt{Build Path>Add External Archives ...} as shown below.
   \begin{center}
   \includegraphics[scale=0.25]{eclipse-classpath.png}
@@ -116,8 +116,25 @@ Write a class  \texttt{ImageFlipper} that flips an image vertically (i.e. puts t
 \begin{exercise}
 Modify the class \texttt{ImageInvertor} from Exercise~\ref{ex:invert} such that it can handle RGB color images.
 \begin{itemize}
-  \item Write a method \co{getRGBComponentsFromInt} that converts an integer into an array containing the RGB components.
+  \item Write a static method \co{getRGBComponentsFromInt} that converts an integer into an array containing the RGB components.
+  \begin{lstlisting}
+  public static int[] getRGBComponentsFromInt(int color) {
+    int[] components = new int[3];
+    components[0] = (color & 0x00ff0000) >> 16; // red
+    components[1] = ...; // green
+    components[2] = ...; // blue
+    return components;
+  }
+  \end{lstlisting}
   \item Write a method \co{getIntFromRGBComponents} that converts an array of RGB components into an integer.
+  \begin{lstlisting}
+  public static int getIntFromRGBComponents(int[] components) {
+    int red = components[0];
+    int green = components[1];
+    int blue = components[2];
+    return (red << 16) + ...;  
+  }
+  \end{lstlisting}
   \item Modify the \texttt{main} method of \texttt{ImageInvertor}  such that it checks whether the image is 8-bit grayscale or RGB color. You can use the method \co{getType} to determine the image type. If the image is grayscale, the existing code should be used for inverting the image. If the image is RGB color, then for each pixel each color component should be inverted separately. For example, if the RGB components of a pixel are (255, 0, 50), then the inverted pixel value is (0, 255, 205). If the image is neither 8-bit grayscale or RGB color, print an error message. Use the methods \co{getRGBComponentsFromInt} and \co{getIntFromRGBComponents} to help you out.
 \end{itemize}
 The output of \texttt{ImageInvertor} for \texttt{lena.png} should look as follows:
@@ -264,6 +281,10 @@ hello
 
 Note that all \co{Scanner.nextX} methods throw \co{NoSuchElementException} if the input does not match the expected type.
 
+\begin{exercise}\label{ex:imageflipper4}
+Modify the class \co{ImageFlipper} from Exercise~\ref{ex:imageflipper3} such that the names of the input and output images are read from standard input if no command line arguments are provided.
+\end{exercise}
+
 \subsection{GenericDialog}
 Graphical user interfaces are an alternative to command line arguments and reading from standard input. For example, one may want to display the window shown below to acquire input from the user.  
 
@@ -301,7 +322,7 @@ Modify the class \co{CreateGradientImage} from Exercise~\ref{ex:gradient-image} 
 You can use \co{GenericDialog.addChoice} to allow to user to select the desired direction from a drop down menu. 
 \end{exercise}
 
-Next to \co{GenericDialog}, you can use arbitrary arbitrary Swing components to get input from the user. For example, \co{java.swing.JFileChooser} allows the user to browse his or her file system for a file, while \co{java.swing.JColorChooser} allows selecting a color.
+Next to \co{GenericDialog}, you can use arbitrary Swing components to get input from the user. For example, \co{java.swing.JFileChooser} allows the user to browse his or her file system for a file, while \co{java.swing.JColorChooser} allows selecting a color.
 
 %What happens if you set the color to -1 for a grayscale image?
 %What happens if you get or put a pixel outside of the image?
