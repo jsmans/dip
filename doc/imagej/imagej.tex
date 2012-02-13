@@ -20,6 +20,7 @@ ImageJ can be used both as a standalone application and as a library. To run the
 Experiment with the ImageJ graphical user interface:
 \begin{itemize}
   \item Open \texttt{lena.png} via \texttt{File>Open...}.
+  \item The \texttt{Process} menu contains several common image processing operations. What is the effect \texttt{Process>Sharpen}? What about \texttt{Process>Smooth} and \texttt{Process>Enhance Contrast}? In a few weeks, you will be able to implement these operations yourself. 
   \item \texttt{lena.png} is an rgb color image. However, we will first explain most image processing techniques using grayscale images. Convert the image to 8 bit grayscale via \texttt{Image>Type>8-bit}.
   \item A grayscale image is a function from coordinates to colors in the range 0 to 255. Visualise this function via  \texttt{Plugins>3D>Interactive 3D Surface Plot}. 
   \item Detect edges in the image via \texttt{Process>Find Edges}. Later in this course, we will explain how edge detection works and how it can be used to sharpen images and to perform seam carving.
@@ -358,6 +359,8 @@ To run a plugin within ImageJ, perform the following steps:
   \item In the ImageJ application, click \texttt{Plugins>Compile and run ...} and select the java file you just copied. The plugin is now compiled and executed on the image. 
 \end{itemize}
 
+If the name of a plugin class ends in underscore (\co{\_}), this plugin is made available in the \texttt{Plugins} menu of ImageJ (after executing \texttt{Plugins>Compile and run ...} and restarting ImageJ).
+
 \begin{exercise}
 Write a plugin that modifies the color of rows of pixels.
 \begin{itemize}
@@ -383,7 +386,7 @@ While modifying the pixels in an image, you can update the corresponding \co{Ima
 \end{center}
 \end{exercise}
 
-\begin{exercise}
+\begin{exercise}\label{ex:border}
 Write an ImageJ plugin that creates a border around a grayscale image. The user should be able to select the border width and color via sliders in a \co{GenericDialog}. 
 
 \begin{center}
@@ -398,6 +401,14 @@ The method \co{GenericDialog.addSlider} adds a slider to a dialog. The selected 
 \end{exercise}
 
 \begin{exercise}
+Write an ImageJ plugin to switch the color component of an RGB color image. For example, the red component of each pixel is replaced by that pixel's blue component, green is replaced by red and blue is replaced   by green. For example, a pixel with rgb values $(85, 170, 255)$ should be modified to $(255, 85, 170)$. Applying this plugin to \texttt{lena.png} should look as follows:
+ 
+\begin{center}
+\includegraphics[scale=0.2]{lena-switched.png}
+\end{center}
+\end{exercise}
+
+\begin{exercise}
 Write an ImageJ plugin to display only a single color component of an RGB color image. For example, to only display the red component, set the green and blue components of each pixel to 0 (but do not modify the red component). Displaying only the red, green and blue component of \co{lena.png} should look as follows:
  
 \begin{center}
@@ -408,7 +419,60 @@ Write an ImageJ plugin to display only a single color component of an RGB color 
 What is the expected outcome if you run this plugin on \co{red.png} selecting green as the component to be shown?
 \end{exercise}
 
-% live preview?, progress bar?
+\subsection*{Previews}
+Many image processing operations in Photoshop and Gimp show a preview of the final image while the user selects the desired parameters. As shown in a variant of the border plugin of exercise~\ref{ex:border}, this features can be supported in ImageJ plugins.
+
+\begin{center}
+\includegraphics[scale=0.2]{lena-previewed.png}
+\includegraphics[scale=0.4]{generic-dialog-with-preview.png}
+\end{center}
+
+To support previewing in your plugin, modify its code as follows:
+\begin{itemize}
+ \item Implement the interfaces \co{ExtendedPlugInFilter} and \co{DialogListener} instead of \co{PlugInFilter}. The goal of \co{ExtendedPlugInFilter} is to separate the configuration from the execution of the plugin.
+ \item Add field for each parameter of your plugin. For example, if the user can select a color, add a field to store that color.
+ \item Implement the method \co{showDialog}. Create a \co{GenericDialog}. In addition to the normal input field for each parameter, add a preview check box (via \co{addPreviewCheckBox} with the given \co{PlugInFilterRunner}). Register \co{this} as a \co{DialogListener} via \co{addDialogListener}. ImageJ will call \co{dialogItemChanged} whenever the user modifies one of the input fields.  
+  \item Implement the method \co{dialogItemChanged}. The goal of this method is to store the parameters currently selected by the user in the corresponding fields. The return value of this method indicates whether the given set of parameters is valid. 
+   \item Implement the method \co{run}. This method reads the selected parameters from the fields of the plugin class and executes the plugin. \co{run} itself should not display any dialogs.
+\end{itemize}
+
+\begin{exercise}
+Modify the plugin of exercise~\ref{ex:border} such that it displays a preview of the final image similar to the one shown above while configuring the size and color. 
+\end{exercise}
+
+\subsection*{Region of Interest}
+The plugins described so far apply to the entire image. However, a graphical designer might want to apply a plugin only to part of an image. For example, in the image shown below only pixels within a certain region of interested (ROI) were inverted.
+\begin{center}
+\includegraphics[scale=0.2]{lena-inverted-partially.png}
+\end{center}
+In the ImageJ application, the region of interest can be extended by holding the shift key. A plugin can support arbitrary regions of interest as follows:
+\begin{itemize}
+  \item The class \co{ImageProcessor} contains a method \co{getRoi}. This method returns a \co{Rectangle} representing a bounding box for the area currently selected by the user. The plugin should only modify pixels within this rectangle. The body of \co{run} should look as follows:
+  \begin{lstlisting}
+public void run(ImageProcessor ip) {
+  Rectangle rect = ip.getRoi();
+  for(int x = rect.x; x < rect.x + rect.width; x++) {
+    for(int y = rect.y; y < rect.y + rect.height; y++) {
+      // modify the pixel at (x, y)
+    }
+  }
+}
+  \end{lstlisting}
+  \item The rectangle returned by \co{getRoi} may contain pixels that lie outside of the area selected by the user. For example, the rectangle for the region of interest shown above includes both the entire rectangle and the entire circle, and hence pixels directly above the rectangle are also included in the region of interest. Instruct ImageJ to set these pixels to their original value after running the plugin by returning \co{SUPPORTS_MASKING} (in addition to the supported image types) in the \co{setup} method. 
+\end{itemize}
+
+\begin{exercise}
+Modify the plugin from exercise~\ref{ex:invert} such that it inverts only the selected region of interest.
+\end{exercise}
+
+\begin{exercise}
+Gimp provides a filter  (\texttt{Filters>Blur>Pixelize}) to pixelize an image. For example, \co{lena.png} can be made unrecognisable using pixelisation. 
+\begin{center}
+  \includegraphics[scale=0.2]{lena-incognito.png}
+\end{center}
+Pixelisation replaces all pixels within a ``block'' by the average pixel value of that block. Write a plugin to pixelate part of a grayscale image and use this filter to make lena unrecognisable. Allow the user to select the block width and height'. 
+\end{exercise}
+% live preview?, progress bar?, ROI?
 
 % access exif info in IJ?
 \end{document}
