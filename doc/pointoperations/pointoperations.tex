@@ -218,7 +218,11 @@ How does contrast stretching affect the dynamic range of an image?
 \end{exercise}
 
 \begin{exercise}
-Implement contrast stretching as a composite point operation. Apply this point operation to \texttt{mysteryperson.png}. Who is this mysterious woman hidden in the fog?
+Implement contrast stretching as a composite point operation. Apply this point operation to \texttt{oneinfiniteloop-low-contrast.png}. 
+\end{exercise}
+
+\begin{exercise}
+Apply your contrast stretcher to \texttt{mysteryperson.png}. Who is this mysterious woman hiding in the fog?
 \end{exercise}
 
 \begin{exercise}
@@ -230,15 +234,27 @@ Apply your contrast stretcher to \texttt{mysteryperson2.png}. What do you see? W
 \end{exercise}
 
 \subsection*{Improved Grayscale Contrast stretching}
-Contrast stretching as described above does not work well if the image contains a few extreme pixel values (e.g. 0 or 255) which are not be representative of the main image content. For example, while the minimum and maximum pixel values in \texttt{mysteryperson2.png} are 0 and 255, most pixels lie in the range 105 to 110. However, contrast stretching does not work well because it amounts to subtract zero from each pixel and afterwards multiplying by one ($(255 / (255 - 0)$). In other words, contrast stretching has no effect at all on \texttt{mysteryperson2.png}! How can we solve this problem?
+Contrast stretching as described above does not work well if the image contains a few extreme pixel values (e.g. 0 or 255) which are not be representative of the main image content. For example, while the minimum and maximum pixel values in \texttt{mysteryperson2.png} are 0 and 255, most pixels lie in the range 105 to 110. However, contrast stretching does not work well because it amounts to subtracting zero from each pixel and afterwards multiplying by one ($(255 / (255 - 0)$). In other words, contrast stretching has no effect at all on \texttt{mysteryperson2.png}! How can we solve this problem?
 
-The problem caused by extreme pixel values can be avoided by ``ignoring'' (or saturating) a fixed percentage of the pixels in the lower and upper ends of the color range when computing the minimum and maximum pixel value occurring in the image. That is, instead of computing the minimum and maximum pixel value, we compute two limiting values \co{low} and \co{high} such that a fixed percentage of all pixels has value less than or equal to \co{low} and such that a fixed percentage of all pixels has value greater than or equal to \co{high}.  For example, if we ignore 1\% on each side in an image with 10000 pixels, then \co{low} is the smallest color such that there at least 10 pixels in the image with value less than or equal to \co{low}. 
+The problem caused by extreme pixel values can be avoided by ``ignoring'' (or saturating) a fixed percentage of the pixels in the lower and upper ends of the color range when computing the minimum and maximum pixel value occurring in the image. That is, instead of computing the minimum and maximum pixel value, we compute two limiting values \co{low} and \co{high} such that a fixed percentage of all pixels has value less than or equal to \co{low} and such that a fixed percentage of all pixels has value greater than or equal to \co{high}.  For example, if we ignore 1\% on each side in an image with 10000 pixels, then \co{low} is the smallest color such that there at least 100 pixels in the image with value less than or equal to \co{low}. 
 
 Assuming that the fraction of pixels ignored on each side is $p$, the values of \co{low} and \co{high} for an image with $N$ pixels can easily be computed from the cumulative histogram $H$:
 $$\begin{array}{c}
 \mathtt{low} = \min \{ c \mid H(i) \geq N.p \} \\
 \mathtt{high} = \max \{ c \mid H(i) \leq N.p \} \\
 \end{array}$$
+Let's look at an example. Suppose we want to compute \co{low} for a 100x100 image with the following cumulative histogram:
+$$\begin{array}{rcl}
+H(0) & = & 0\\
+H(1) & = & 30\\
+H(2) & = & 52\\
+H(3) & = & 112\\
+H(4) & = & 184\\
+H(5) & = & 404\\
+& \dots &\\
+\end{array}$$
+If we saturate 1\% on each side, \co{low} is the smallest color that has cumulative histogram value of at least 100 (= 1 percent of 10000). Thus, \co{low} equals $3$.
+
 Given the values of \co{low} and \co{high}, improved contrast stretching can be implemented as a composition of two point operations:
 \begin{itemize}
   \item Subtract \co{low} from each pixel. That is, apply the following function to each pixel:
@@ -257,23 +273,33 @@ $$multiply(c) = \left\{\begin{array}{c l}
 \end{itemize}
 
 \begin{exercise}
-Implement improved contrast stretching. Apply your improved contrast stretcher to \texttt{mysteryperson2.png}.  Who is this mysterious woman hidden in the fog?
+Implement improved contrast stretching. Apply your improved contrast stretcher to \texttt{mysteryperson2.png}.  Who is this mysterious woman hiding in the fog?
 \end{exercise}
 
 Improved contrast stretching is available in practically any image processing software. For example, the auto-contrast operation in Adobe Photoshop saturates 0.5\% of all pixels.
 
 \begin{exercise}
-Write an ImageJ plugin for contrast stretching. Allow the user to select the percentage of pixels that will be saturated on each side via a \co{GenericDialog}.
+What is the effect of setting the saturation percentage too high? 
 \end{exercise}
 
-\section{Multi-image Point Operations}
-A \emph{multi-image point operation} is an image processing operation that takes two images as input and that outputs a new image by applying a function to each pixel pair. That is, the value of each pixel in the output image depends only on the colors of the corresponding pixels in both input images. More formally, each multi-image point operation has a corresponding function $f$ that maps color pairs to colors. Given two images $I_1$ and $I_2$, the point operation applies this function to each pixel pair:
+\begin{exercise}
+Write an ImageJ plugin for contrast stretching. Allow the user to select the percentage of pixels that will be saturated on each side via a dialog.
+\end{exercise}
+
+\begin{exercise}\textbf{extra}
+Add a preview check box to your plugin such that the user can preview the resulting image while selecting the appropriate value for the number of saturated pixels. Chaper 1
+%hardref
+explains how to add previewing to your plugins.
+\end{exercise}
+
+\section{Two-image Point Operations}
+A \emph{two-image point operation} is an image processing operation that takes two images as input and that outputs a new image by applying a function to each pixel pair. That is, the value of each pixel in the output image depends only on the colors of the corresponding pixels in both input images. More formally, each two-image point operation has a corresponding function $f$ that maps color pairs to colors. Given two images $I_1$ and $I_2$, the two-image point operation applies this function to each pixel pair:
 $$I'(x, y) \leftarrow f(I_1(x, y), I_2(x, y))$$
 for each position $(x, y)$ in $I_1$.
 
-To model the common aspects shared by all point operations, we define an abstract class \co{MultiImagePointOperation}. 
+To model the common aspects shared by all two-image point operations, we define an abstract class \co{TwoImagePointOperation}. 
 \begin{lstlisting}
-public abstract class MultiImagePointOperation {
+public abstract class TwoImagePointOperation {
   public abstract int f(int color1, int color2);
   
   public void applyTo(ImageProcessor ip1, ImageProcessor ip2) {
@@ -288,11 +314,11 @@ public abstract class MultiImagePointOperation {
   }
 }
 \end{lstlisting}
-Specific multi-image point operations will be modelled as subclasses of the class \co{MultiImagePointOperation}. In particular, subclasses should override the abstract method \co{f} with their own function. The method \co{applyTo} modifies \co{ip1} by applying \co{f} to each pixel pair.
+Specific two-image point operations will be modelled as subclasses of the class \co{TwoImagePointOperation}. In particular, subclasses should override the abstract method \co{f} with their own function. The method \co{applyTo} modifies \co{ip1} by applying \co{f} to each pixel pair.
 
-Let's look at an example. Averaging two grayscale images is a multi-image point operation with function $f(c_1, c_2) = (c_1 + c_2) / 2$. We can represent averaging by defining a subclass of \co{MultiImagePointOperation} that overrides \co{f}. 
+Let's look at an example. Averaging grayscale images is a two-image point operation with function $f(c_1, c_2) = (c_1 + c_2) / 2$. We can represent averaging by defining a subclass of \co{TwoImagePointOperation} that overrides \co{f}. 
 \begin{lstlisting}
-public class Gray8Average extends MultiImagePointOperation {
+public class Gray8Average extends TwoImagePointOperation {
   @Override  
   public int f(int color1, int color2) {
     return (c_1 + c_2) / 2;
@@ -306,25 +332,111 @@ ImageProcessor ip2 = ...
 Gray8Average average = new Gray8Average();
 average.applyTo(ip1, ip2);
 \end{lstlisting}
-
-\subsection{Alpha Blending}
-
+%The function corresponding to a two-image point operation can be visualized as a 3d surface plot:
+%todo
 
 \begin{exercise}
-
+Implement a two-image point operation called \co{Averager} for averaging grayscale images as a subclass of \co{TwoImagePointOperation}. Applying this operation to \texttt{stevejobs-gray.png} and \texttt{billgates-gray.png} results in the following image:
+\begin{center}
+\includegraphics[scale=0.2]{jobs-gates-average.png}
+\end{center}
 \end{exercise}
 
-\begin{exercise}\textbf{extra}
-updateanddraw
+\subsection{Chroma Keying}
+Chroma keying is a technique to place an object or person in a new scene often used in movies and television productions. The subject is first filmed in front of a green or blue background, and afterwards this background is replaced by a new background. For example, weather man Roby Roels presents the weather in front of a green screen. The viewer however sees the picture shown on the television on the right.
+\begin{center}
+\includegraphics[scale=0.25]{roby-chromakey.jpg}
+\end{center}
+
+\begin{exercise}
+The directory \texttt{jasma/dip/pointoperations/student-images} contains a number of images of students in front of a green wall. Select an image from this directory. Try to write a two-image point operation to place the students in front of a new background. That is, replace each pixel in the background image by the corresponding pixel in the foreground image, unless the foreground pixel is ``sufficiently green''.  \texttt{jasma/dip/pointoperations/backgrounds} contains some example backgrounds. You will notice that is hard to find the suitable bounds for the red, green and blue channels that properly isolate the subject.
 \end{exercise}
 
-\subsection{Image Differences}
+\subsubsection*{HSV}
+Isolating a particular color range (e.g. a green background) is hard in the RGB color model. HSV is an alternative to RGB where each color is represented using three components: hue, saturation and value. Hue represents the color, saturation the amount of color and value represent the brightness. Hue always lies between 0 and 360 (representing an angle) and saturation and value both lie between 0 and 1.
 
-\begin{exercise}\textbf{extra}
-Package imagediffer as a jar file. 
+\begin{exercise}
+Experiment with the HSV color model on
+
+ \href{http://www.cosc.canterbury.ac.nz/mukundan/cogr/HSVColor.html}{http://www.cosc.canterbury.ac.nz/mukundan/cogr/HSVColor.html}. 
+ 
+Adjust the sliders and inspect the resulting colors. What is the HSV triple corresponding to black? What about red and white? How can you create various shades of gray? What happens if you decrease the saturation? What happens if you decrease the value?
 \end{exercise}
 
-\subsection{Chroma Key Compositing}
+An RGB triple $(r, g, b)$ can be converted to a HSV triple $(h, s, v)$ as follows:
+\begin{itemize}
+  \item Normalize the red, green and blue channels to the range 0 to 1 by dividing each channel by 255:
+  $$\begin{array}{rcl}
+  r_n & = & r / 255;\\
+  g_n & = & g / 255;\\
+  b_n & = & b / 255;\\
+  \end{array}$$
+  \item Define ${max}$ as the maximum of $r_n$, $g_n$ and $b_n$. Similarly, define ${min}$ as the minimum of $r_n$, $g_n$ and $b_n$. 
+  \item If ${max} = 0$, then the HSV triple is $(0, 0, 0)$.
+  \item Otherwise, if $r_n=g_n=b_n$, then the HSV triple is $(0, 0, r_n)$.
+  \item Otherwise,
+  %
+  $$\begin{array}{rcl}
+  h & = & \left\{\begin{array}{c l}
+  (0 + (g_n - b_n) / ({max} - {min})) \times 60 & \text{if $r_n= {max}$}\\
+  (2 + (b_n - r_n) / ({max} - {min})) \times 60 & \text{if $g_n = {max}$}\\
+ (4 + (r_n - g_n) / ({max} - {min})) \times 60 & \text{if $b_n = {max}$}\\
+\end{array}
+\right.\\
+  & &\\ 
+  s & = & ({max} - {min}) / max\\ 
+  & &\\
+  v & = & \max(r_n, g_n, b_n)\\
+  \end{array}$$
+If $h$ is negative, add $360$ to $h$.
+\end{itemize}
+
+\begin{exercise}
+Write a static method \co{getHSVComponentsFromInt} to convert an integer (that represents a color in the RGB model) to a HSV triple.
+\begin{lstlisting}
+public static double[] getHSVComponentsFromInt(int color) {
+  double[] components = new double[3];
+  ...
+  components[0] = ...; // hue
+  components[1] = ...; // saturation
+  components[2] = ...; // value
+  return components;
+}
+\end{lstlisting}
+\end{exercise}
+
+\begin{exercise}
+The directory \texttt{jasma/dip/pointoperations/student-images} contains a number of images of students in front of a green wall. Select an image from this directory. Write a two-image point operation to place the students in front of a new background. That is, replace each pixel in the background image by the corresponding pixel in the foreground image, unless the foreground pixel is ``sufficiently green''. To determine whether a pixel is ``sufficiently green'', convert it to HSV using \co{getHSVComponentsFromInt} and check whether it is lies within a certain range (in the HSV model).The directory \texttt{jasma/dip/pointoperations/backgrounds} contains some example backgrounds.
+\end{exercise}
+
+\subsection{Alpha Blending}
+Alpha blending is a two-image point operation that computes the weighted sum of two input images, assigning weight $\alpha$ to the first image and $1 - \alpha$ to the second. Averaging is a special case of alpha blending with $\alpha$ equal to $0.5$.
+
+\begin{exercise}
+Implement grayscale alpha blending in a class \co{AlphaBlender}. $\alpha$ is a parameter of the constructor of this class.
+\end{exercise}
+
+\begin{exercise}
+Extend the class \co{AlphaBlender} such that it can handle both grayscale and RGB color images. For RGB color images, each individual channel is blended separately. For example, blending the RGB triples $(0, 100, 200)$ and $(100, 0, 100)$ with $alpha=0.25$ result in the triple $(75, 25, 125)$.   
+\end{exercise}
+
+Alpha blending can be used to fade one image into another by slowly changing the value of $\alpha$. 
+
+\begin{exercise}
+Write a (main) method to slowly fade one image into another. Hint: You can force an \co{ImageWindow} to update by calling \co{updateAndDraw} on the corresponding \co{ImagePlus}.
+\end{exercise}
+
+\subsection{Spot the Difference}
+Consider the two images shown below\footnote{source:\href{http://www.allstarpuzzles.com}{http://www.allstarpuzzles.com}}:
+\begin{center}
+\includegraphics[scale=0.4]{spotthedifference1.jpg}
+\includegraphics[scale=0.4]{spotthedifference2.jpg}
+\end{center}
+What are the differences between both images? Did you find all 16? Let's write a program to find out.
+
+\begin{exercise}
+Write a program that highlights the differences in two RGB color images. Compare the corresponding pixels in each image. If they are equal, decrease the brightness by dividing each color channel by $4$; otherwise, change the color to red. Use your program to find differences in \texttt{spotthedifference1.jpg} and \texttt{spotthedifference2.jpg}.
+\end{exercise}
 
 \section{Color Contrast Stretching}\label{sec:color-contrast-stretching}
 

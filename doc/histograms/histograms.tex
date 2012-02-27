@@ -48,13 +48,13 @@ Here, \co{xValues} and \co{Y-values} contain the data displayed on the X and Y-a
 \end{exercise}
 
 \begin{exercise}
-Display the histogram of the image located at \href{}{} (but do not look at the image yet). What can you say about the image based on the histogram? Check your predictions. 
+Display the histogram of the image located at \href{http://www.cs.kuleuven.be/~jans/histogramquestion.png}{http://www.cs.kuleuven.be/~jans/histogramquestion.png} (but do not look at the image yet). What can you say about the image based on the histogram? Check your predictions. 
 \end{exercise}
 
 We define the \emph{dynamic range} of an image as the number of distinct pixel values in that image. Similarly, the \emph{contrast} of an image is the difference between the minimum and maximum pixel value in that image. For example, the minimum and maximum pixel values in \co{lena-gray.png} are respectively $35$ and $240$, and hence the contrast of the image is $205$.
 
 \begin{exercise}
-Extend the class \co{Gray8Histogram} with two additional methods, one to compute the contrast and another to compute the dynamic range.
+Extend the class \co{Gray8Histogram} with four additional methods: \co{getMin}, \co{getMax}, \co{getContrast} and \co{getDynamicRange}. \co{getMin} and \co{getMax} respectively the minimum and maximum pixel value occurring in the image. 
 \end{exercise}
 
 \section{Cumulative Grayscale Image Histograms}
