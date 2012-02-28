@@ -439,6 +439,30 @@ Write a program that highlights the differences in two RGB color images. Compare
 \end{exercise}
 
 \section{Color Contrast Stretching}\label{sec:color-contrast-stretching}
+The contrast of an RGB color image consists of the contrasts of its individual channels. An RGB color image with low contrast is foggy and typically lacks vivid colors. For example, the variations of \co{lena.png} shown below have decreasing constrast (from left to right):
+\begin{center}
+\includegraphics[scale=0.15]{lena.png}
+\includegraphics[scale=0.15]{lena-contrast-reducedby-50.png}
+\includegraphics[scale=0.15]{lena-contrast-reducedby-100.png}
+\includegraphics[scale=0.15]{lena-contrast-reducedby-150.png}
+\end{center}
+The image on the left is the original. The contrast of each channel in the other three images has been respectively reduced by 50, 100 and 150.
+
+One can generalize grayscale contrast stretching to RGB color images by applying grayscale contrast stretching to each individual channel. 
+
+\begin{exercise}
+Implement RGB color stretching by applying improved grayscale contrast stretching to each individual channel. Run your contrast stretcher on \co{beach-contrast-reduced.png}. 
+\end{exercise}
+
+\begin{exercise}
+Run your contrast stretcher on \co{bluesea.jpg}. What do you see? Why?
+\end{exercise}
+
+Applying contrast stretching to each individual channel can lead to color shifting. Color shifting can be avoided by transforming each pixel to HSV and by applying contrast stretching only to the value channel.
+
+\begin{exercise}
+Implement HSV value stretching.
+\end{exercise}
 
 %\section{Post-it Images}
 %\section{LUT}
