@@ -78,12 +78,20 @@ Thresholding reduces the number of colors in the image to two, black and white. 
 \right.$$
 The plot corresponding to this function looks as follows:
 \begin{center}
-%\includegraphics[scale=0.10]{posterize3-plot.png} % todo
+\includegraphics[scale=0.20]{posterize3-plot.png} 
 \end{center}
 Implement a point operation \co{Gray8Posterize} to posterize grayscale images. The desired number of colors should be a parameter of the class' constructor. Posterizing \co{lena-gray.png} to 4 colors results in the following image:
 \begin{center}
 \includegraphics[scale=0.20]{lena-gray-posterized4.png}
 \end{center}
+\end{exercise}
+
+\begin{exercise}
+Consider the plot shown below:
+\begin{center}
+\includegraphics[scale=0.2]{vplot.png}
+\end{center}
+What is the function corresponding to this plot? Implement a point operation for this function.
 \end{exercise}
 
 \begin{exercise}\label{ex:desaturate}
@@ -332,8 +340,10 @@ ImageProcessor ip2 = ...
 Gray8Average average = new Gray8Average();
 average.applyTo(ip1, ip2);
 \end{lstlisting}
-%The function corresponding to a two-image point operation can be visualized as a 3d surface plot:
-%todo
+The function corresponding to a two-image point operation can be visualized as a 3d surface plot:
+\begin{center}
+\includegraphics[scale=0.25]{avg-plot.png}
+\end{center}
 
 \begin{exercise}
 Implement a two-image point operation called \co{Averager} for averaging grayscale images as a subclass of \co{TwoImagePointOperation}. Applying this operation to \texttt{stevejobs-gray.png} and \texttt{billgates-gray.png} results in the following image:
@@ -342,7 +352,7 @@ Implement a two-image point operation called \co{Averager} for averaging graysca
 \end{center}
 \end{exercise}
 
-\subsection{Chroma Keying}
+\subsection{Chroma Keying}\label{sec:chromakeying}
 Chroma keying is a technique to place an object or person in a new scene often used in movies and television productions. The subject is first filmed in front of a green or blue background, and afterwards this background is replaced by a new background. For example, weather man Roby Roels presents the weather in front of a green screen. The viewer however sees the picture shown on the television on the right.
 \begin{center}
 \includegraphics[scale=0.25]{roby-chromakey.jpg}
@@ -455,18 +465,39 @@ Implement RGB color stretching by applying improved grayscale contrast stretchin
 \end{exercise}
 
 \begin{exercise}
+Apply your contrast stretcher to \texttt{mysteryperson3.png}. Who is this mysterious figure hiding in the shadows? If you have implemented color contrast stretching correctly, find the answer you will.
+\end{exercise}
+
+\begin{exercise}
 Run your contrast stretcher on \co{bluesea.jpg}. What do you see? Why?
 \end{exercise}
 
-Applying contrast stretching to each individual channel can lead to color shifting. Color shifting can be avoided by transforming each pixel to HSV and by applying contrast stretching only to the value channel.
+Applying contrast stretching to each individual channel can lead to color shifting. Color shifting can be avoided by considering each pixel in its HSV representation and by applying contrast stretching only to the value and/or saturation channel. We have already explained how to convert an RGB triple to HSV in Section~\ref{sec:chromakeying}.
 
 \begin{exercise}
-Implement HSV value stretching.
+Write a static method \co{getRGBFromHSV} to convert an HSV triple to a corresponding RGB triple.
+\begin{lstlisting}
+public static int[] getRGBFromHSV(double[] hsvComponents) {
+  Color c =  Color.getHSBColor((float) (hsv[0] / 360), 
+    (float) hsv[1], 
+    (float) hsv[2]);
+  int[] rgb = new int[3];
+  rgb[0] = c.getRed();
+  rgb[1] = c.getGreen();
+  rgb[2] = c.getBlue();
+  return rgb;
+}
+\end{lstlisting}
 \end{exercise}
 
+\begin{exercise}
+Implement HSV saturation and/or value stretching.
+\end{exercise}
+
+
+% solarize
 %\section{Post-it Images}
 %\section{LUT}
-%misteryimage
-% operations from 
+% operations from photobooth
 
 \end{document}
