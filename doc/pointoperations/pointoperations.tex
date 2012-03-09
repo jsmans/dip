@@ -22,7 +22,7 @@ public abstract class PointOperation {
   public void applyTo(ImageProcessor ip) {
     for(int x = 0; x< ip.getWidth(); x++) {
       for(int y = 0; y < ip.getHeight(); y++) {
-        ip.putPixel(f(ip.getPixel()));      
+        ip.putPixel(x, y, f(ip.getPixel(x, y)));      
       }    
     }
   }
@@ -52,7 +52,7 @@ We can visualize the function corresponding to a point operation in a plot. For 
 Thresholding is a point operation that converts a grayscale image to a binary image by mapping dark pixels to black and light pixels to white. The function for thresholding is the following:
 $$threshold(c) = \left\{\begin{array}{c l}
   0 & \text{if $c \leq 127$}\\
-  1 & \text{otherwise}\\
+  255 & \text{otherwise}\\
 \end{array}
 \right.$$
 Draw the plot corresponding to thresholding and implement thresholding by defining a new subclass \co{Gray8Threshold} of \co{PointOperation}. Thresholding \co{lena-gray.png} results in the following image:
@@ -104,7 +104,7 @@ In Gimp, the conversion of an RGB color to a shade of grade is either based on l
 The three functions corresponding to these different conversions are respectively defined as follows:
 $$\begin{array}{l}
 desaturate_{lightness}((r, g, b)) = (x, x, x)\\
-\quad \text{where $x = \max(r, g, b) + \min(r, g, b)) / 2$}\\
+\quad \text{where $x = (\max(r, g, b) + \min(r, g, b)) / 2$}\\
 \\
 desaturate_{luminosity}((r, g, b)) = (x, x, x)\\
 \quad\text{where $x = 0.21 r + 0.72 g + 0.07 b$}\\
@@ -244,7 +244,7 @@ Apply your contrast stretcher to \texttt{mysteryperson2.png}. What do you see? W
 \subsection*{Improved Grayscale Contrast stretching}
 Contrast stretching as described above does not work well if the image contains a few extreme pixel values (e.g. 0 or 255) which are not be representative of the main image content. For example, while the minimum and maximum pixel values in \texttt{mysteryperson2.png} are 0 and 255, most pixels lie in the range 105 to 110. However, contrast stretching does not work well because it amounts to subtracting zero from each pixel and afterwards multiplying by one ($(255 / (255 - 0)$). In other words, contrast stretching has no effect at all on \texttt{mysteryperson2.png}! How can we solve this problem?
 
-The problem caused by extreme pixel values can be avoided by ``ignoring'' (or saturating) a fixed percentage of the pixels in the lower and upper ends of the color range when computing the minimum and maximum pixel value occurring in the image. That is, instead of computing the minimum and maximum pixel value, we compute two limiting values \co{low} and \co{high} such that a fixed percentage of all pixels has value less than or equal to \co{low} and such that a fixed percentage of all pixels has value greater than or equal to \co{high}.  For example, if we ignore 1\% on each side in an image with 10000 pixels, then \co{low} is the smallest color such that there at least 100 pixels in the image with value less than or equal to \co{low}. 
+The problem caused by extreme pixel values can be avoided by ``ignoring'' (or saturating) a fixed percentage of the pixels in the lower and upper ends of the color range when computing the minimum and maximum pixel value occurring in the image. That is, instead of computing the minimum and maximum pixel value, we compute two limiting values \co{low} and \co{high} such that a fixed percentage of all pixels has value less than or equal to \co{low} and such that a fixed percentage of all pixels has value greater than or equal to \co{high}.  For example, if we ignore 1\% on each side in an image with 10000 pixels, then \co{low} is the smallest color such that there are at least 100 pixels in the image with value less than or equal to \co{low}. 
 
 Assuming that the fraction of pixels ignored on each side is $p$, the values of \co{low} and \co{high} for an image with $N$ pixels can easily be computed from the cumulative histogram $H$:
 $$\begin{array}{c}
