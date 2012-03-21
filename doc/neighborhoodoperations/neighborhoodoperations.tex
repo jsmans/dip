@@ -1,0 +1,305 @@
+\documentclass{book}
+
+\input{../definitions}
+
+\usepackage{tikz}
+\usetikzlibrary{fit,shapes.geometric}
+
+\newcommand\marktopleft[1]{%
+    \tikz[overlay,remember picture] 
+        \node (marker-#1-a) at (0,1.5ex) {};%
+}
+\newcommand\markbottomright[1]{%
+    \tikz[overlay,remember picture] 
+        \node (marker-#1-b) at (0,0) {};%
+    \tikz[overlay,remember picture,thick,dashed,inner sep=3pt]
+        \node[draw,rounded rectangle,fit=(marker-#1-a.center) (marker-#1-b.center)] {};%
+}
+\newcounter{nodemarkers}
+\newcommand\circletext[1]{%
+    \tikz[overlay,remember picture] 
+        \node (marker-\arabic{nodemarkers}-a) at (0,1.5ex) {};%
+    #1%
+    \tikz[overlay,remember picture]
+        \node (marker-\arabic{nodemarkers}-b) at (0,0){};%
+    \tikz[overlay,remember picture,inner sep=2pt]
+        \node[draw,ellipse,fit=(marker-\arabic{nodemarkers}-a.center) (marker-\arabic{nodemarkers}-b.center)] {};%
+    \stepcounter{nodemarkers}%
+}
+
+
+\begin{document}
+
+\addtocounter{chapter}{4}
+
+\chapter{Neighborhood Operations}
+A neighborhood operation is an image processing step that takes an image as input and that computes a new value for each pixel based on its neighorhood. That is, the color of each pixel in the output image does not only depend on the color of the corresponding pixel in the input image but also on the colors of nearby pixels in the input image.
+
+Setting each pixel in the image to the maximum color occurring in the pixel's neighborhood is a simple neighborhood operation. Applying this operation to the image matrix shown below on the left results in the image matrix shown on the right.
+
+\renewcommand\arraystretch{1.6}
+\begin{minipage}[b]{0.4\linewidth}\centering
+\begin{tabular}{| c | c | c | c | c | c |}
+\hline
+4 & 68 & 32 & 11 & 4 & 58\\
+\hline
+49 & 19\cellcolor{yellow} & 58\cellcolor{yellow} & 53\cellcolor{yellow} & 82 & 1\\
+\hline
+0 & 13\cellcolor{yellow} &  \circletext{\textcolor{red}{37}}\cellcolor{yellow} & 34\cellcolor{yellow} & 29 & 76\\
+\hline
+45 & 3\cellcolor{yellow} & 51\cellcolor{yellow} & 64\cellcolor{yellow} & 87 & 47\\
+\hline
+12 & 83 & 92 & 54 & 65 & 67\\
+\hline
+32 & 39 & 71 & 94 & 73 & 5\\
+\hline
+\end{tabular}
+\end{minipage}
+\begin{minipage}[b]{0.5\linewidth}\centering
+\begin{tabular}{| c | c | c | c | c | c |}
+\hline
+68 & 68 & 68 & 82 & 82 & 82\\
+\hline
+68 & 68 & 68 & 82 & 82 & 82\\
+\hline
+45 & 58 &  \circletext{\textcolor{red}{64}} & 87 & 87 & 87\\
+\hline
+83 & 92 & 92 & 92 & 87 & 87\\
+\hline
+83 & 94 & 94 & ? & 87 & 87\\
+\hline
+83 & 94 & 94 & 94 & 73 & 73\\
+\hline
+\end{tabular}
+\end{minipage}
+
+For example, the new color of the pixel at coordinate $(2, 2)$ is $64$, because $64$ is the maximum color in the 3 by 3 area around the pixel in the input image (i.e. the maximum of $19$, $58$, $53$, $13$, $37$, $34$, $3$, $51$, $64$). That is, the new color of the pixel at coordinate $(2, 2)$ depends only on pixels highlighted in yellow in the input image.
+
+\begin{exercise}
+What is the new color of the pixel at coordinate $(3, 4)$? Which input pixel influence this color?
+\end{exercise}
+
+\section{A Tiny Framework for Neighborhood Operations}
+Each neighborhood operation computes a new value for each pixel based on the pixel itself and its neighborhood. To model the common aspects shared by all neighborhood operations, we define an abstract class \co{NeighborhoodOperation}:
+\begin{lstlisting}
+public abstract class NeighborhoodOperation {
+
+  public abstract int neighborhoodFunction(ImageProcessor ip, int x, int y);
+
+  public void applyTo(ImageProcessor ip) {
+    ImageProcessor copy = ip.duplicate();
+    for(int x = 0; x < ip.getWidth(); x++) {
+      for(int y = 0; y < ip.getHeight(); y++) {
+        int newColor = neighborhoodFunction(copy, x, y);
+        ip.putPixel(x, y, newColor);     
+      }    
+    }  
+  }
+}
+\end{lstlisting}
+The template method \co{applyTo} assigns a new color to each pixel. The new color of each pixel is a function of the pixel's neighborhood and is computed by method \co{neighborhoodFunction}.  Specific neighborhood operations are modelled as subclasses of \co{NeighborhoodOperation}. In particular, subclasses must override the abstract method \co{neighborhoodFunction}. Let's look at an example. Replacing each pixel with the maximum color occurring in the pixel's neighborhood is a neighborhood operation. We can represent this operation by defining a subclass of \co{NeighborhoodOperation} that overrides \co{neighborhoodFunction}:
+\begin{lstlisting}
+public class Gray8Max extends NeighborhoodOperation {
+  public int neighborhoodFunction(ImageProcessor ip, int x, int y) {
+    int max = 0;
+    for(int i = -1; i <= 1; i++) {
+      for(int j = -1; j <= 1; j++) {
+        if(ip.getPixel(x + i, y + j) > max) {
+          max = ip.getPixel(x + i, y + j);          
+        }
+      }      
+    }
+    return max;
+  }
+}
+\end{lstlisting}
+This neighborhood operation can be applied to an image as follows:
+\begin{lstlisting}
+ImageProcessor ip = ...
+NeighborhoodOperation maxNeighborhoodOperation = new Gray8Max();
+maxNeighborhoodOperation.applyTo(ip);
+\end{lstlisting}
+
+\begin{exercise}
+Why does the method \co{applyTo} duplicate \co{ip}?
+\end{exercise}
+
+\begin{exercise}\label{ex:gray8max}
+Add the classes \co{NeighborhoodOperation} and \co{Gray8Max} to your Eclipse or Netbeans project. \texttt{lena-gray-pepper.png} is copy of \co{lena.png} with some black (pepper) noise.
+\begin{center}
+\includegraphics[scale=0.35]{lena-gray-pepper.png}
+\end{center}
+What do you expect will happen if you apply \co{Gray8Max} to this image? Check your predications. 
+
+\texttt{lena-gray-salt.png} is copy of \co{lena.png} with some white (salt) noise. 
+\begin{center}
+\includegraphics[scale=0.35]{lena-gray-salt.png}
+\end{center}
+What do you expect will happen if you apply \co{Gray8Max} to this image? Check your predications. 
+\end{exercise}
+
+\begin{exercise}\label{ex:gray8min}
+Create a new subclass of \co{NeighborhoodOperation} called \co{Gray8Min}. \co{Gray8Min} represents a neighborhood operation that replaces each pixel by the minimum color occurring in the 3x3 area around that pixel. What do you expect will happen if you apply \co{Gray8Min} to the noisy images (\texttt{lena-gray-salt.png} and \texttt{lena-gray-pepper.png})? Check your predications. 
+\end{exercise}
+
+\begin{exercise}
+The size of the neighborhood is hard coded to 3x3 in the method \co{neighborhoodFunction} of \co{Gray8Min} from exercise~\ref{ex:gray8min}. Modify the class \co{Gray8Min} such that the size of the neighborhood can be passed as an argument to the constructor as follows:
+\begin{itemize}
+  \item Extend the class \co{Gray8Min} with two integer fields, \co{xrange} and \co{yrange}. \co{xrange} determines the width of the neighborhood and \co{yrange} its height. More specifically, the width and height of the neighborhood are respectively \co{2 * xrange + 1} and \co{2 * yrange + 1}. For example, a 3x3 neighborhood can be obtained by setting both \co{xrange} and \co{yrange} to 1. %todo: add image
+  \item Add a constructor to \co{Gray8Min} that initializes \co{xrange} and \co{yrange}. 
+  \item Modify the method \co{neighborhoodFunction} such that \co{xrange} and \co{yrange} determine which pixels are included in the neighborhood. 
+\end{itemize}
+\end{exercise}
+
+\begin{exercise}
+What is the effect of setting \co{xrange} and \co{yrange} to 0 for \texttt{lena-gray}? What about 5? What about 20?
+\end{exercise}
+
+\begin{exercise}
+How does \co{Gray8Min} affect pixels near the border? Why? (Hint: Look up the behavior of \co{getPixel} in the \href{http://rsb.info.nih.gov/ij/developer/api/ij/process/ImageProcessor.html\#getPixel(int,\%20int)}{documentation of ImageProcessor}.) Modify the method \co{neighborhoodFunction} of \co{Gray8Min} such that the neighborhood of pixels near the border does not include pixels ``outside'' of the image. We will study other strategies for dealing with border pixels in Section~\ref{sec:border-pixels}.
+\end{exercise}
+
+\co{Gray8Max} eliminates the black noise from \texttt{lena-gray-pepper.png}, but it enlarges white pixels in \texttt{lena-gray-salt.png}. Similarly, \co{Gray8Min} eliminates white noise from \texttt{lena-gray-salt.png}, but enlarges black pixels in the image \texttt{lena-gray-pepper.png}. However, neither neighborhood operation removes all noise from \texttt{lena-gray-salt-and-pepper.png}. 
+\begin{center}
+\includegraphics[scale=0.35]{lena-gray-salt-and-pepper.png}
+\end{center}
+How can we remove all noise from the image shown above? Black and white noise can be removed from \texttt{lena-gray-salt-and-pepper.png} by a neighborhood operation that computes the median color occurring in the neighborhood. The median is the color that is smaller than half the pixels in the neighborhood and larger than or equal to the other half. 
+
+\begin{exercise}
+Implement a class \co{Gray8Median} that replaces each pixel by the median color occurring in the pixel's neighborhood. Find the median color by first adding each pixel in the neighborhood to an array, secondly sorting this array, and finally taking the color in the middle of that array. Note that an integer array can be sorted via the method \co{Arrays.sort}.
+
+Check that this neighborhood operation removes both the black and white noise from \texttt{lena-gray-salt-and-pepper.png}.
+\end{exercise}
+
+\begin{exercise}
+Apply \co{Gray8Median} to \texttt{mysteryperson4.png}. Who is this women hidden by salt and pepper? Hint: Apply the median neighborhood operation a number of times in a row to obtain a better image.
+\end{exercise}
+
+\section{Linear Grayscale Neighborhood Operations}
+Photographing in low-light conditions or using high ISO settings can produce \emph{grainy} images. For example, the image shown below on the left was taken at ISO 100 with shutter speed 1/350s, while the image on the right was taken at ISO 1600 with shutter speed 1/4000s.
+\begin{center}
+\includegraphics[scale=0.22]{flower-iso-100-cropped.png}
+\includegraphics[scale=0.22]{flower-iso-1600-cropped.png}
+\end{center}
+
+Notice the noise in the image on the right. The reduced shutter speed for the second image compensates for the increase in sensor sensitivity.
+\begin{exercise}
+\texttt{lena-gray-grainy.png} is a grainy copy of \texttt{lena.png}. Try removing the noise using \co{Gray8Median}.
+\end{exercise}
+
+We can visualize the grainy noise via a 3D surface plot\footnote{3D surface plots for grayscale images can be created in ImageJ via \texttt{Plugins>3D>Interactive 3D Surface Plot}.} as shown below. Each $(x, y, z)$ triple on the surface corresponds to a pixel at coordinate $(x, y)$ with color $z$. That is, the height of the surface represents the color of the corresponding pixels. For example, the ``peaks'' in the surfaces correspond to the bright yellow leaves of the flower, while ``valley'' correspond to the dark background.
+\begin{center}
+\includegraphics[scale=0.22]{flower-gray-plot.png}
+\includegraphics[scale=0.22]{flower-gray-grainy-plot.png}
+\end{center}
+The plot corresponding to the grainy image is bumpy and not as smooth as the plot of the image taken at ISO 100. A simple way to remove the bumps in the surface (and hence the grainy noise) is to replace each pixel by the average color in the neighborhood around that pixel. Averaging is an example of \emph{blurring} (making the image less grainy, but also less sharp).
+
+\begin{exercise}
+Implement a neighborhood operation called \co{Gray8Average} which replaces each pixel by the average color in the neighborhood around that pixel. As before, users of \co{Gray8Average} must be able to set the size of the neighborhood via parameters (\co{xrange} and \co{yrange}) of the constructor.
+
+Apply \co{Gray8Average} to \texttt{flower-gray-grainy.png} for neighorhood sizes 3x3, 7x7 and 11x11 respectively. How does increasing the neighborhood size affect the 3D surface plot? 
+\end{exercise}
+
+A neighborhood operation is \emph{linear} if the new color of each pixel is a weighted sum of the pixels in its neighborhood. The term \emph{weighted} means that the color of each pixel in the neighborhood is first multiplied by a weight before adding it to the total sum. Averaging is an example of a linear neighborhood operation with weight $1/N$ for each pixel, where $N$ is the total number of pixels in the neighborhood. For example, the weight for each nearby pixel is $1/9$ if the neighborhood size is 3x3 and $1/25$ if the size is 5x5. A linear neighborhood operation is sometimes called a \co{convolution}.
+
+Averaging uses the same weight for each pixel in the neighborhood. However, this need not be the case for all linear neighborhood operations. For example, one can increase the influence of the pixel itself on its new color and decrease the influence of the other neighbors by assigning a larger weight to the pixel itself and a smaller weight to the neighbors.
+
+\begin{exercise}\label{ex:diffweights}
+Implement a new linear neighborhood operation that replaces each pixel by a weighted sum of the pixels in the 3x3 area around that pixel. The weight of the pixel itself is $1/2$, while the other eight pixels have weight $1/16$.
+\end{exercise}
+
+Writing a new subclass of \co{NeighborhoodOperation} each time we come up with different weights is tedious. Let's write a class named \co{Convolution} where the weights of all neighbours can be passed as a matrix (two-dimensional array in Java). Such a matrix containing weights is typically called a \emph{kernel}. For example, the kernel corresponding to 3x3 averaging is the following:
+$$
+ \begin{bmatrix}
+  \frac{1}{9} & \frac{1}{9} & \frac{1}{9} \\
+  \frac{1}{9} & \textcolor{red}{\frac{1}{9}} & \frac{1}{9} \\
+  \frac{1}{9} & \frac{1}{9} & \frac{1}{9}
+ \end{bmatrix}
+$$
+The value in the center of the matrix highlighted in red is the weight corresponding to the pixel itself. The kernel corresponding to 5x5 averaging is the following:
+$$
+ \begin{bmatrix}
+  \frac{1}{25} & \frac{1}{25} & \frac{1}{25} & \frac{1}{25} & \frac{1}{25}\\
+  \frac{1}{25} & \frac{1}{25} & \frac{1}{25} & \frac{1}{25} & \frac{1}{25}\\
+  \frac{1}{25} & \frac{1}{25} & \textcolor{red}{\frac{1}{25}} & \frac{1}{25} & \frac{1}{25}\\
+  \frac{1}{25} & \frac{1}{25} & \frac{1}{25} & \frac{1}{25} & \frac{1}{25}\\
+  \frac{1}{25} & \frac{1}{25} & \frac{1}{25} & \frac{1}{25} & \frac{1}{25}
+ \end{bmatrix}
+$$
+Finally, the kernel corresponding to exercise~\ref{ex:diffweights} is the following:
+$$
+ \begin{bmatrix}
+  \frac{1}{8} & \frac{1}{8} & \frac{1}{8} \\
+  \frac{1}{8} & \textcolor{red}{\frac{1}{2}} & \frac{1}{8} \\
+  \frac{1}{8} & \frac{1}{8} & \frac{1}{8}
+ \end{bmatrix}
+$$
+
+Kernels can be represented in Java as two-dimensional arrays. For example, consider the following 3x5 kernel 
+$$
+ \begin{bmatrix}
+  \frac{1}{30} & \frac{4}{30} & \frac{1}{30} \\
+  \frac{4}{30} & \frac{1}{30} & \frac{1}{30} \\
+  \frac{2}{30} & \textcolor{red}{\frac{2}{30}} & \frac{2}{30}\\
+  \frac{0}{30} & \frac{3}{30} & \frac{3}{30}\\
+  \frac{3}{30} & \frac{0}{30} & \frac{3}{30}\\
+ \end{bmatrix}
+$$
+This kernel is denoted in Java as follows:
+\begin{lstlisting}
+double[][] kernel = { { 1./30, 4./30, 1./30 },
+                      { 5./30, 0./30, 1./30 },
+                      { 2./30, 2./30, 2./30 },
+                      { 0./30, 3./30, 3./30 },
+                      { 3./30, 0./30, 3./30 } };
+\end{lstlisting}
+Pay attention to the following three issues when working with kernels in Java:
+\begin{itemize}
+  \item The rows of a two-dimensional array in Java need not have equal length. For example, the following code snippet is valid in Java:
+\begin{lstlisting}
+double[][] badkernel = { { 1./30, 4./30 },
+                         { 5./30, 0./30, 1./30, 1./30, 1./30 },
+                         { 2./30 },
+                         null,
+                         { 3./30, 0./30, 3./30, 1./30 } };
+\end{lstlisting}
+However, this two-dimensional array does not represent a valid matrix! For a two-dimensional array to be a valid matrix, all rows must be non-null and must have equal length.
+  \item The weight in column $i$ and row $j$ is denoted as \co{kernel[j][i]}. So the first index represents the row number while the second one represents the column. For example, \co{kernel[1][0]} contains \co{5./30}. Note the difference with indexing in images: \co{getPixel(x, y)} returns the color of the pixel in column \co{x} and row \co{y}.
+  \item In Java, \co{1/30} is not the same as \co{1./30}. The former expression evaluates to the integer \co{0}, while the latter evaluates to the double \co{0.033333333333333}.
+\end{itemize}
+
+\begin{exercise}
+Create a new subclass of \co{NeighborhoodOperation} called \co{Gray8Convolution}.
+\begin{itemize}
+  \item Add a field named \co{kernel} of type \co{double[][]}. Users of the class should be able to pass the kernel as an argument to the constructor. The constructor should check that the width and height of the kernel are both odd.
+  \item Implement the method \co{neighborhoodFunction} as follows:
+  \begin{itemize}
+    \item Create a new  local variable named \co{total} of type \co{double}. Initialize this variable to \co{0.0}.
+    \item Iterate over all pixels in the neighborhood using two nested \co{for} loops. The size of the neighborhood is determined by the size of the kernel. Add the pixel's color multiplied by the appropriate weight from \co{kernel} to \co{total}.
+    \item Return \co{total}.
+  \end{itemize}
+\end{itemize}
+\end{exercise}
+
+% motion blur
+
+\subsection{Normalization}
+
+\subsection{Gaussian Blurring}
+
+% motion blur
+% lens blur
+% blurring color images
+% bokeh
+% transition
+% cartoon style
+% noise removal with edge preservation
+% ...
+
+% applications: blurring incognito, noise removal (e.g. preprocessing to edge detection), transitions, unsharp mask, motion blur in games, focus on foreground subject 
+
+\section{Dealing with Border Pixels}\label{sec:border-pixels}
+
+
+\end{document}
+
