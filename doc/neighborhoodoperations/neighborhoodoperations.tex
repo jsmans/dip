@@ -27,6 +27,8 @@
     \stepcounter{nodemarkers}%
 }
 
+\setcounter{MaxMatrixCols}{11}
+
 
 \begin{document}
 
@@ -76,7 +78,7 @@ Setting each pixel in the image to the maximum color occurring in the pixel's ne
 For example, the new color of the pixel at coordinate $(2, 2)$ is $64$, because $64$ is the maximum color in the 3 by 3 area around the pixel in the input image (i.e. the maximum of $19$, $58$, $53$, $13$, $37$, $34$, $3$, $51$, $64$). That is, the new color of the pixel at coordinate $(2, 2)$ depends only on pixels highlighted in yellow in the input image.
 
 \begin{exercise}
-What is the new color of the pixel at coordinate $(3, 4)$? Which input pixel influence this color?
+What is the new color of the pixel at coordinate $(3, 4)$? Which input pixels influence this color?
 \end{exercise}
 
 \section{A Tiny Framework for Neighborhood Operations}
@@ -175,7 +177,11 @@ Check that this neighborhood operation removes both the black and white noise fr
 Apply \co{Gray8Median} to \texttt{mysteryperson4.png}. Who is this women hidden by salt and pepper? Hint: Apply the median neighborhood operation a number of times in a row to obtain a better image.
 \end{exercise}
 
-\section{Linear Grayscale Neighborhood Operations}
+\begin{exercise}
+A security camera has taken a picture, \co{mysterycab.png}, of a cab involved in a crime. Alas, the image quality is poor and the taxi number is not readable. Can you help out the CSI team and improve the image quality such that the taxi number becomes readable?
+\end{exercise}
+
+\section{Grayscale Linear Neighborhood Operations}
 Photographing in low-light conditions or using high ISO settings can produce \emph{grainy} images. For example, the image shown below on the left was taken at ISO 100 with shutter speed 1/350s, while the image on the right was taken at ISO 1600 with shutter speed 1/4000s.
 \begin{center}
 \includegraphics[scale=0.22]{flower-iso-100-cropped.png}
@@ -194,7 +200,7 @@ We can visualize the grainy noise via a 3D surface plot\footnote{3D surface plot
 \end{center}
 The plot corresponding to the grainy image is bumpy and not as smooth as the plot of the image taken at ISO 100. A simple way to remove the bumps in the surface (and hence the grainy noise) is to replace each pixel by the average color in the neighborhood around that pixel. Averaging is an example of \emph{blurring} (making the image less grainy, but also less sharp).
 
-\begin{exercise}
+\begin{exercise}\label{ex:gray8average}
 Implement a neighborhood operation called \co{Gray8Average} which replaces each pixel by the average color in the neighborhood around that pixel. As before, users of \co{Gray8Average} must be able to set the size of the neighborhood via parameters (\co{xrange} and \co{yrange}) of the constructor.
 
 Apply \co{Gray8Average} to \texttt{flower-gray-grainy.png} for neighorhood sizes 3x3, 7x7 and 11x11 respectively. How does increasing the neighborhood size affect the 3D surface plot? 
@@ -234,12 +240,13 @@ $$
   \frac{1}{8} & \frac{1}{8} & \frac{1}{8}
  \end{bmatrix}
 $$
+The center of the matrix corresponding to weight of the pixel itself is sometimes called the \emph{hot spot}.
 
 Kernels can be represented in Java as two-dimensional arrays. For example, consider the following 3x5 kernel 
 $$
  \begin{bmatrix}
   \frac{1}{30} & \frac{4}{30} & \frac{1}{30} \\
-  \frac{4}{30} & \frac{1}{30} & \frac{1}{30} \\
+  \frac{5}{30} & \frac{0}{30} & \frac{1}{30} \\
   \frac{2}{30} & \textcolor{red}{\frac{2}{30}} & \frac{2}{30}\\
   \frac{0}{30} & \frac{3}{30} & \frac{3}{30}\\
   \frac{3}{30} & \frac{0}{30} & \frac{3}{30}\\
@@ -269,7 +276,7 @@ However, this two-dimensional array does not represent a valid matrix! For a two
 \end{itemize}
 
 \begin{exercise}
-Create a new subclass of \co{NeighborhoodOperation} called \co{Gray8Convolution}.
+Create a new subclass of the class \co{NeighborhoodOperation} called \co{Convolution}.
 \begin{itemize}
   \item Add a field named \co{kernel} of type \co{double[][]}. Users of the class should be able to pass the kernel as an argument to the constructor. The constructor should check that the width and height of the kernel are both odd.
   \item Implement the method \co{neighborhoodFunction} as follows:
@@ -281,24 +288,204 @@ Create a new subclass of \co{NeighborhoodOperation} called \co{Gray8Convolution}
 \end{itemize}
 \end{exercise}
 
-% motion blur
+\begin{exercise}
+Refactor the class \co{Gray8Average} from exercise \ref{ex:gray8average}.
+\begin{itemize}
+  \item Change the superclass of \co{Gray8Average} to \co{Convolution}.
+  \item Add a new static method called \co{createAverageKernel} that returns a kernel based on two integer arguments: \co{xrange} and \co{yrange}. The width of the returned kernel is \co{2*xrange + 1} and its height is \co{2*yrange + 1}. The value of each element in the kernel is \co{1./N}, where \co{N} is the kernel's total size.
+  \item The implementation of \co{Gray8Average}'s constructor should call he superclass constructor passing a kernel created by \co{createAverageKernel} as an argument.
+\end{itemize}
+\end{exercise}
+
+\begin{exercise} When taking a picture of a moving subject or when shaking the camera itself, \emph{motion blur} can occur in the resulting image. For example, the moving bus in the image shown below is blurry, while the shop in the background and the phone cell in the foreground are sharp.
+\begin{center}
+\includegraphics[scale=0.6]{bus-motionblur.jpg}
+\end{center}
+Several race games artificially add motion blur to each frame to create the impression of speed. For example, the road is blurred in the screenshot of Split/Second shown below.  
+\begin{center}
+\includegraphics[scale=0.4]{game-motionblur.jpg}
+\end{center}
+
+
+Simulate horizontal motion blur in \co{ferrari-gray.png} by applying \co{Gray8Average} using a kernel with height 1 (\co{yrange} is 0) and width 41 (\co{xrange} is 20). What is the effect of increasing the kernel width?
+\end{exercise}
+
+\section{Color Linear Neighborhood Operations}
+
+% incognito
+
+\begin{exercise}\textbf{extra}
+Bokeh is the blur in the out-of-focus area of the image. As shown in the background of the image shown below, bokeh typically manifest itself as circles or haxagons.
+\begin{center}
+\includegraphics[scale=0.2]{bokeh-blur.jpg}
+\end{center}
+The bokeh effect can be simulated by applying a linear neighborhood operation with a circular kernel.
+
+Implement a new subclass of \co{Convolution} called \co{Bokeh}. Add a new static method called \co{createBokehKernel} with one integer parameter named \co{side}. The method generates a kernel with width and height equal to \co{side}. The value of each non-zero element in the kernel is \co{1./N}, where \co{N} is the number of non-zero elements. For example, the bokeh kernel with width and height equal to $5$ is the following:
+  $$
+ \begin{bmatrix}
+0 & 0 & \frac{1}{13} & 0 & 0\\
+0 & \frac{1}{13} & \frac{1}{13} & \frac{1}{13} & 0\\
+\frac{1}{13} & \frac{1}{13} & \frac{1}{13} & \frac{1}{13} & \frac{1}{13}\\
+0 & \frac{1}{13} & \frac{1}{13} & \frac{1}{13} & 0 \\
+0 & 0 & \frac{1}{13} & 0 & 0 \\
+ \end{bmatrix}
+$$
+The bokeh kernel with width and height equal to $9$ is the following:
+$$
+ \begin{bmatrix}
+0 & 0 & 0 & 0 & \frac{1}{49} & 0 & 0 & 0 & 0\\
+0 & 0 & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & 0 & 0\\
+0 & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & 0\\
+0 & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & 0\\
+\frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49}\\
+0 & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & 0\\
+0 & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & 0\\
+0 & 0 & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & \frac{1}{49} & 0 & 0\\
+0 & 0 & 0 & 0 & \frac{1}{49} & 0 & 0 & 0 & 0\\
+ \end{bmatrix}
+$$
+In a bokeh kernels shown above, an element is non-zero only if its distance to the center is smaller than the kernel width. The distance between two 2D points $(x_1, y_1)$ and $(x_2, y_2)$ can be computed using the following formula:
+$$\sqrt{(x_1 - x_2)^2 + (y_1 - y_2)^2}$$
+Create a bokeh kernel with width and height 51 and convolve \co{christmastree-gray.png} using this kernel.
+\end{exercise}
+
+\section{Gaussian Blurring}
+Averaging is often referred to as a \emph{box filter} because the shape of its kernel resembles a box.
+\begin{center}
+\includegraphics[scale=0.3]{boxfilter.png}
+\end{center}
+The height of each box element is $1/N$, where $N$ is the size of the neighborhood.
+
+Blurring via a box filter has two important disadvantages. First of all, a box filter is not \emph{isotropic} meaning that the kernel is not uniform in all directions. Informally, a kernel is isotropic if it looks the same from all sides. Secondly, a box kernel assigns equal weights to all pixels in the neighborhood. However, it is often preferable to have stronger emphasis given to pixels near the center of the kernel than to more distant ones. For these reasons, the default blur (or smooth) command in most image editing programs using a gaussian kernel instead of a box kernel.
+
+Gaussian blurring uses a kernel based on the gauss function.
+\begin{center}
+\includegraphics[scale=0.3]{gaussfilter.png}
+\end{center}
+The gauss kernel is isotropic. Moreover, the weight of each element depends on its distance from the hot spot (i.e. the center of the matrix).
+
+How can we construct such a Gauss kernel? Before we answer this question, let's study the 1-dimensional gauss function. The 1-dimensional function $g_\sigma$ is defined as follows:
+$$g_\sigma(x) = \frac{1}{\sigma\sqrt{2\pi}} \cdot e^{-\frac{x^2}{2\sigma^2}}$$
+where $\sigma$ denotes the with (standard deviation) of the bell-shaped function and $e$ is Euler's number ($2.7182$). The plot shown below depicts the gauss function within the range $-5$ to $5$ for $\sigma$ equal to 1, 2 and 3.
+
+\begin{center}
+\includegraphics[scale=0.4]{gaussplot.pdf}
+\end{center}
+
+The domain of $g_\sigma$ is $\mathbb{R}$. This means that the function has a value for each possible value of $x$. However, the value of $g_\sigma(x)$ approaches zero as $|x|$ grows. In particular, $g_\sigma(x) \approx 0$ if $|x| > 3\sigma$. For example in the plot shown above $g_\sigma$ approaches zero for $\sigma$ equal to 1 when $x > 3$ or $x < 3$.  
+
+\begin{exercise}
+Implement the 1-dimensional gauss function in Java as a static method:
+\begin{lstlisting}
+public static double gauss1d(double x, double sigma) {
+  ...
+}
+\end{lstlisting}
+Euler's number is denoted in Java as \co{Math.E}.
+\end{exercise}
+
+The 2-dimensional gauss function $G_\sigma$ is defined as follows:
+$$G_\sigma(x, y) = g_\sigma(x) \cdot g_\sigma(y)$$
+The value of $G_\sigma(x, y)$ approaches zero as $|x|$ and $|y|$ grow. Based on the 2-dimensional gauss function $G_\sigma$, we can construct a kernel as follows:
+$$
+\begin{bmatrix}
+\dots & \dots & \dots & \dots & \dots & \dots & \dots\\
+\dots & G(-2, -2) & G(-1, -2) & G(0, -2) & G(1, -2) & G(2, -2) & \dots\\
+\dots & G(-2, -1) & G(-1, -1) & G(0, -1) & G(1, -1) & G(2, -1) & \dots\\
+\dots & G(-2, 0) & G(-1, 0) & G(0, 0) & G(1, 0) & G(2, 0) & \dots\\
+\dots & G(-2, 1) & G(-1, 1) & G(0, 1) & G(1, 1) & G(2, 1) & \dots\\
+\dots & G(-2, 2) & G(-1, 2) & G(0, 2) & G(1, 2) & G(2, 2) & \dots\\
+\dots & \dots & \dots & \dots & \dots & \dots & \dots\\
+\end{bmatrix}
+$$
+The domain $G_\sigma$ is $\mathbb{R} \times \mathbb{R}$. What the size of the kernel? Because the value of $G_\sigma(x, y)$ is close to zero when $|x| > 3\sigma$ or $|y| > 3\sigma$, \co{xrange} and \co{yrange} are typically set to $3\sigma$ or even $2.5\sigma$ (rounded down). In the remainder of this section, we select the latter option, $2.5\sigma$. Thus, if $\sigma$ equals 1, the gauss kernel is 5 by 5:
+$$
+\begin{bmatrix}
+0.0029 & 0.0131 & 0.0215 & 0.0131 & 0.0029\\
+0.0131 & 0.0585 & 0.0965 & 0.0585 & 0.0131\\
+0.0215 & 0.0965 & 0.1592 & 0.0965 & 0.0215\\
+0.0131 & 0.0585 & 0.0965 & 0.0585 & 0.0131\\
+0.0029 & 0.0131 & 0.0215 & 0.0131 & 0.0029\\
+\end{bmatrix}
+$$
+Similarly, if $\sigma$ equals 2, the gauss kernel is 11 by 11:
+{\footnotesize{$$
+\begin{bmatrix}
+0.0001 & 0.0002 & 0.0006 & 0.0011 & 0.0015 & 0.0017 & 0.0015 & 0.0011 & 0.0006 & 0.0002 & 0.0001\\
+0.0002 & 0.0007 & 0.0017 & 0.0033 & 0.0048 & 0.0054 & 0.0048 & 0.0033 & 0.0017 & 0.0007 & 0.0002\\
+0.0006 & 0.0017 & 0.0042 & 0.0078 & 0.0114 & 0.0129 & 0.0114 & 0.0078 & 0.0042 & 0.0017 & 0.0006\\
+0.0011 & 0.0033 & 0.0078 & 0.0146 & 0.0213 & 0.0241 & 0.0213 & 0.0146 & 0.0078 & 0.0033 & 0.0011\\
+0.0015 & 0.0048 & 0.0114 & 0.0213 & 0.0310 & 0.0351 & 0.0310 & 0.0213 & 0.0114 & 0.0048 & 0.0015\\
+0.0017 & 0.0054 & 0.0129 & 0.0241 & 0.0351 & 0.0398 & 0.0351 & 0.0241 & 0.0129 & 0.0054 & 0.0017\\
+0.0015 & 0.0048 & 0.0114 & 0.0213 & 0.0310 & 0.0351 & 0.0310 & 0.0213 & 0.0114 & 0.0048 & 0.0015\\
+0.0011 & 0.0033 & 0.0078 & 0.0146 & 0.0213 & 0.0241 & 0.0213 & 0.0146 & 0.0078 & 0.0033 & 0.0011\\
+0.0006 & 0.0017 & 0.0042 & 0.0078 & 0.0114 & 0.0129 & 0.0114 & 0.0078 & 0.0042 & 0.0017 & 0.0006\\
+0.0002 & 0.0007 & 0.0017 & 0.0033 & 0.0048 & 0.0054 & 0.0048 & 0.0033 & 0.0017 & 0.0007 & 0.0002\\
+0.0001 & 0.0002 & 0.0006 & 0.0011 & 0.0015 & 0.0017 & 0.0015 & 0.0011 & 0.0006 & 0.0002 & 0.0001\\
+\end{bmatrix}
+$$}}
+
+\begin{exercise}
+Implement gaussian blurring in the class \co{GaussianBlur}, a new subclass of \co{Convolution}.
+\begin{itemize}
+  \item  Add a static method called \co{createGaussKernel} with one double parameter named \co{sigma}. The method creates a kernel based on the given \co{sigma}.
+  \item The constructor of \co{GaussianBlur} takes \co{sigma} as an argument. The \co{super} call should take \co{createGaussKernel} as an argument.
+\end{itemize}
+\end{exercise}
+
+\begin{exercise}
+Google street view is an extension of Google maps that provides panoramic views from positions along many streets in the world. To address privacy concerns, users can ask Google to make certain images unrecognisable. Google does so by applying a blur filter. For example, \href{http://maps.google.be/?ll=50.86546,4.700148&spn=0.0014,0.00246&t=m&layer=c&cbll=50.865564,4.700181&panoid=2s4kQDqWdj96P1mRHbEahQ&cbp=12,229.38,,0,-4.81&z=19}{some images taken in the Burgemeester Jozef Eerdekensstraat in Leuven} were blurred in Google street view.
+
+\co{khl-streetview-gray.png} is a Google street view image taken at the Department of Health and Technology of the KHLeuven. Apply a gaussian blur to this image. What is the required value of $\sigma$ to make the text on the banner illegible.  
+\end{exercise}
+
+%\begin{exercise}
+%Open \co{larg
+%Apply gaussian blurring with $\sigma$ equal to $20$ to \texttt{largeimage.png}. How many seconds does this take? How many pixels are examined for each individual pixel?
+%\end{exercise}
 
 \subsection{Normalization}
 
-\subsection{Gaussian Blurring}
+\begin{exercise}
+\texttt{whiteimage.png} is an image containing only perfectly white pixels (color = 255). What do you expect will happen if you apply gaussian blurring to this image? Will the pixels (in the center of the image) remain perfectly white? Why or why not? Check your predictions? 
+\end{exercise}
 
-% motion blur
+The total sum of the weights in the gauss kernels shown above is not exactly 1, but 0.98 (why?). This means that an image will not only be blurred, but also become slightly darker. This undesirable side effect can be prevented by \emph{normalising} the kernel, i.e. by dividing each element in the kernel by the total sum. After normalisation the total sum of the weights equals 1.   
+
+\begin{exercise}
+Add a method \co{normalise} to the class \co{Convolution}. Again apply gaussian blurring to \texttt{whiteimage.png}, but normalize the kernel this time. What do you see? 
+\end{exercise}
+
+% separable
+% unsharp mask
+
+\subsection{Separability}
+
+\begin{exercise}
+Apply gaussian blurring with $\sigma$ equal to 10 to \texttt{earth-gray.png}. How many seconds does this take? How many pixels are examined for determining the new value of each pixel?
+\end{exercise}
+
+The size of the kernel determines the number of pixels taken into account when computing the new color of each individual pixel. For example, the size of the gaussian blur kernel for $\sigma$ equal to 10 is 51 by 51. This means that for each pixel 2601 (=$51^2$) other pixels are examined. Such a convolution is computationally intensive.
+
+Luckily, some kernels (such as a gaussian one) are \emph{separable}. This means that one can replace a convolution with a large, square matrix by two one-dimensional convolutions.  
+
+\begin{exercise}
+Exploit the separability of the gauss kernel to implement fast gaussian blurring. Apply fast gaussian blurring with $\sigma$ equal to 10 to \texttt{earth-gray.png}. How many seconds does this take? How many pixels are examined for determining the new value of each pixel?
+\end{exercise}
+
+
 % lens blur
 % blurring color images
-% bokeh
-% transition
 % cartoon style
 % noise removal with edge preservation
 % ...
 
-% applications: blurring incognito, noise removal (e.g. preprocessing to edge detection), transitions, unsharp mask, motion blur in games, focus on foreground subject 
+% applications: blurring incognito, noise removal (e.g. preprocessing to edge detection), transitions, unsharp mask, focus on foreground subject 
 
 \section{Dealing with Border Pixels}\label{sec:border-pixels}
+
+%transition
 
 
 \end{document}
