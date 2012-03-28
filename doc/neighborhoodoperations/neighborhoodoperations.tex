@@ -141,7 +141,7 @@ What do you expect will happen if you apply \co{Gray8Max} to this image? Check y
 \end{exercise}
 
 \begin{exercise}\label{ex:gray8min}
-Create a new subclass of \co{NeighborhoodOperation} called \co{Gray8Min}. \co{Gray8Min} represents a neighborhood operation that replaces each pixel by the minimum color occurring in the 3x3 area around that pixel. What do you expect will happen if you apply \co{Gray8Min} to the noisy images (\texttt{lena-gray-salt.png} and \texttt{lena-gray-pepper.png})? Check your predications. 
+Create a new subclass of \co{NeighborhoodOperation} called \co{Gray8Min}. \co{Gray8Min} represents a neighborhood operation that replaces each pixel by the minimum color occurring in the 3x3 area around that pixel. What do you expect will happen if you apply \co{Gray8Min} to the noisy images (\texttt{lena-gray-salt.png} and \texttt{lena-gray-pepper.png})? Check your predictions. 
 \end{exercise}
 
 \begin{exercise}
@@ -193,7 +193,7 @@ Notice the noise in the image on the right. The reduced shutter speed for the se
 \texttt{lena-gray-grainy.png} is a grainy copy of \texttt{lena.png}. Try removing the noise using \co{Gray8Median}.
 \end{exercise}
 
-We can visualize the grainy noise via a 3D surface plot\footnote{3D surface plots for grayscale images can be created in ImageJ via \texttt{Plugins>3D>Interactive 3D Surface Plot}.} as shown below. Each $(x, y, z)$ triple on the surface corresponds to a pixel at coordinate $(x, y)$ with color $z$. That is, the height of the surface represents the color of the corresponding pixels. For example, the ``peaks'' in the surfaces correspond to the bright yellow leaves of the flower, while ``valley'' correspond to the dark background.
+We can visualize the grainy noise via a 3D surface plot\footnote{3D surface plots for grayscale images can be created in ImageJ via \texttt{Plugins>3D>Interactive 3D Surface Plot}.} as shown below. Each $(x, y, z)$ triple on the surface corresponds to a pixel at coordinate $(x, y)$ with color $z$. That is, the height of the surface represents the color of the corresponding pixels. For example, the ``mountain'' in the surfaces correspond to the bright yellow leaves of the flower, while ``valley'' correspond to the dark background.
 \begin{center}
 \includegraphics[scale=0.22]{flower-gray-plot.png}
 \includegraphics[scale=0.22]{flower-gray-grainy-plot.png}
@@ -260,9 +260,7 @@ double[][] kernel = { { 1./30, 4./30, 1./30 },
                       { 0./30, 3./30, 3./30 },
                       { 3./30, 0./30, 3./30 } };
 \end{lstlisting}
-Pay attention to the following three issues when working with kernels in Java:
-\begin{itemize}
-  \item The rows of a two-dimensional array in Java need not have equal length. For example, the following code snippet is valid in Java:
+Pay attention to the following three issues when working with kernels in Java. First of all, the rows of a two-dimensional array in Java need not have equal length. For example, the following code snippet is valid in Java:
 \begin{lstlisting}
 double[][] badkernel = { { 1./30, 4./30 },
                          { 5./30, 0./30, 1./30, 1./30, 1./30 },
@@ -270,12 +268,9 @@ double[][] badkernel = { { 1./30, 4./30 },
                          null,
                          { 3./30, 0./30, 3./30, 1./30 } };
 \end{lstlisting}
-However, this two-dimensional array does not represent a valid matrix! For a two-dimensional array to be a valid matrix, all rows must be non-null and must have equal length.
-  \item The weight in column $i$ and row $j$ is denoted as \co{kernel[j][i]}. So the first index represents the row number while the second one represents the column. For example, \co{kernel[1][0]} contains \co{5./30}. Note the difference with indexing in images: \co{getPixel(x, y)} returns the color of the pixel in column \co{x} and row \co{y}.
-  \item In Java, \co{1/30} is not the same as \co{1./30}. The former expression evaluates to the integer \co{0}, while the latter evaluates to the double \co{0.033333333333333}.
-\end{itemize}
+However, this two-dimensional array does not represent a valid matrix! For a two-dimensional array to be a valid matrix, all rows must be non-null and must have equal length. Secondly, the weight in column $i$ and row $j$ is denoted as \co{kernel[j][i]}. So the first index represents the row number while the second one represents the column. For example, \co{kernel[1][0]} contains \co{5./30}. Note the difference with indexing in images: \co{getPixel(x, y)} returns the color of the pixel in column \co{x} and row \co{y}. Finally, \co{1/30} is not the same as \co{1./30} in Java. The former expression evaluates to the integer \co{0}, while the latter evaluates to the double \co{0.033333333333333}.
 
-\begin{exercise}
+\begin{exercise}\label{ex:convolution}
 Create a new subclass of the class \co{NeighborhoodOperation} called \co{Convolution}.
 \begin{itemize}
   \item Add a field named \co{kernel} of type \co{double[][]}. Users of the class should be able to pass the kernel as an argument to the constructor. The constructor should check that the width and height of the kernel are both odd.
@@ -283,7 +278,7 @@ Create a new subclass of the class \co{NeighborhoodOperation} called \co{Convolu
   \begin{itemize}
     \item Create a new  local variable named \co{total} of type \co{double}. Initialize this variable to \co{0.0}.
     \item Iterate over all pixels in the neighborhood using two nested \co{for} loops. The size of the neighborhood is determined by the size of the kernel. Add the pixel's color multiplied by the appropriate weight from \co{kernel} to \co{total}.
-    \item Return \co{total}.
+    \item Cast \co{total} to \co{int} and return it.
   \end{itemize}
 \end{itemize}
 \end{exercise}
@@ -297,7 +292,7 @@ Refactor the class \co{Gray8Average} from exercise \ref{ex:gray8average}.
 \end{itemize}
 \end{exercise}
 
-\begin{exercise} When taking a picture of a moving subject or when shaking the camera itself, \emph{motion blur} can occur in the resulting image. For example, the moving bus in the image shown below is blurry, while the shop in the background and the phone cell in the foreground are sharp.
+\begin{exercise}\label{ex:motionblur}When taking a picture of a moving subject or when shaking the camera itself, \emph{motion blur} can occur in the resulting image. For example, the moving bus in the image shown below is blurry, while the shop in the background and the phone cell in the foreground are sharp.
 \begin{center}
 \includegraphics[scale=0.6]{bus-motionblur.jpg}
 \end{center}
@@ -306,18 +301,47 @@ Several race games artificially add motion blur to each frame to create the impr
 \includegraphics[scale=0.4]{game-motionblur.jpg}
 \end{center}
 
-
 Simulate horizontal motion blur in \co{ferrari-gray.png} by applying \co{Gray8Average} using a kernel with height 1 (\co{yrange} is 0) and width 41 (\co{xrange} is 20). What is the effect of increasing the kernel width?
 \end{exercise}
 
 \section{Color Linear Neighborhood Operations}
+Each pixel in an RGB color image consists of three separate channels: red, green and blue. An RGB color image can therefore be decomposed into three grayscale images, one for each channel. Linear neighborhood operations can therefore be generalized to color images by applying the convolution to each individual channel.   
 
-% incognito
+\begin{exercise}
+Modify the class \co{Convolution} such that it supports both grayscale and color images.
+\begin{itemize}
+  \item Check at the beginning of the method \co{neighborhoodFunction} whether \co{ip} is an instance of \co{ByteProcessor} or \co{ColorProcessor}.
+\begin{lstlisting}
+@Override
+public int neighborhoodFunction(ImageProcessor ip, int x, int y) {
+  if(ip instanceof ByteProcessor) {
+    // grayscale image   
+  } else if(ip instanceof ColorProcessor) {
+    // color image  
+  } else {
+    throw new UnsupportedOperationException();  
+  }
+}
+\end{lstlisting}
+  \item If \co{ip} is an instanceof \co{ByteProcessor}, the code is as before (exercise~\ref{ex:convolution}). If \co{ip} is an instanceof \co{ColorProcessor}, use three local variables \co{redTotal}, \co{greenTotal} and \co{blueTotal} (instead of only \co{total}). Decompose each pixel in the neighborhood into its three color components and add each component to the appropriate total. Finally, merge \co{redTotal}, \co{greenTotal} and \co{blueTotal} into the new color via \co{getIntFromRGBComponents}.
+\end{itemize}
+\end{exercise}
+ 
+\begin{exercise}
+Blurring (e.g. via averaging) is often used to ensure that persons appearing in images cannot be identified. For example, Google preprocesses the images available in Google street view by blurring faces and license plates. 
+
+The directory \texttt{jasma/dip/neighborhoodoperations/students-portaal} contains a number of images of students. Select your own photo from the directory and make yourself unrecognisable . Does a 3x3 kernel suffice or is a larger kernel required? 
+\end{exercise}
+
+\begin{exercise}
+\texttt{ferrari.png} is an RGB color image (instead of a grayscale image as in exercise~\ref{ex:motionblur}).  Simulate horizontal motion blur in \texttt{ferrari.png}.
+\end{exercise}
 
 \begin{exercise}\textbf{extra}
-Bokeh is the blur in the out-of-focus area of the image. As shown in the background of the image shown below, bokeh typically manifest itself as circles or haxagons.
+Bokeh is the blur in the out-of-focus area of the image. As shown in the background of the images shown below, bokeh typically manifest itself as circles or haxagons.
 \begin{center}
 \includegraphics[scale=0.2]{bokeh-blur.jpg}
+\includegraphics[scale=0.32]{bokeh-blur2.jpg}
 \end{center}
 The bokeh effect can be simulated by applying a linear neighborhood operation with a circular kernel.
 
@@ -347,7 +371,7 @@ $$
 $$
 In a bokeh kernels shown above, an element is non-zero only if its distance to the center is smaller than the kernel width. The distance between two 2D points $(x_1, y_1)$ and $(x_2, y_2)$ can be computed using the following formula:
 $$\sqrt{(x_1 - x_2)^2 + (y_1 - y_2)^2}$$
-Create a bokeh kernel with width and height 51 and convolve \co{christmastree-gray.png} using this kernel.
+Create a bokeh kernel with width and height 51 and convolve \co{christmastree.png} using this kernel.
 \end{exercise}
 
 \section{Gaussian Blurring}
@@ -437,7 +461,7 @@ Implement gaussian blurring in the class \co{GaussianBlur}, a new subclass of \c
 \begin{exercise}
 Google street view is an extension of Google maps that provides panoramic views from positions along many streets in the world. To address privacy concerns, users can ask Google to make certain images unrecognisable. Google does so by applying a blur filter. For example, \href{http://maps.google.be/?ll=50.86546,4.700148&spn=0.0014,0.00246&t=m&layer=c&cbll=50.865564,4.700181&panoid=2s4kQDqWdj96P1mRHbEahQ&cbp=12,229.38,,0,-4.81&z=19}{some images taken in the Burgemeester Jozef Eerdekensstraat in Leuven} were blurred in Google street view.
 
-\co{khl-streetview-gray.png} is a Google street view image taken at the Department of Health and Technology of the KHLeuven. Apply a gaussian blur to this image. What is the required value of $\sigma$ to make the text on the banner illegible.  
+\co{khl-streetview.png} is a Google street view image taken at the Department of Health and Technology of the KHLeuven. Apply a gaussian blur to this image. What is the required value of $\sigma$ to make the text on the banner illegible.  
 \end{exercise}
 
 %\begin{exercise}
@@ -463,29 +487,59 @@ Add a method \co{normalise} to the class \co{Convolution}. Again apply gaussian 
 \subsection{Separability}
 
 \begin{exercise}
-Apply gaussian blurring with $\sigma$ equal to 10 to \texttt{earth-gray.png}. How many seconds does this take? How many pixels are examined for determining the new value of each pixel?
+Apply gaussian blurring with $\sigma$ equal to 10 to \texttt{earth.jpg}. How many seconds does this take? How many pixels are examined for determining the new value of each pixel?
 \end{exercise}
 
-The size of the kernel determines the number of pixels taken into account when computing the new color of each individual pixel. For example, the size of the gaussian blur kernel for $\sigma$ equal to 10 is 51 by 51. This means that for each pixel 2601 (=$51^2$) other pixels are examined. Such a convolution is computationally intensive.
-
-Luckily, some kernels (such as a gaussian one) are \emph{separable}. This means that one can replace a convolution with a large, square matrix by two one-dimensional convolutions.  
+The size of the kernel determines the number of pixels taken into account when computing the new color of each individual pixel. For example, the size of the gaussian blur kernel for $\sigma$ equal to 10 is 51 by 51. This means that for each pixel 2601 (=$51^2$) other pixels need to be examined. Such a convolution is computationally intensive. Luckily, some kernels (such as a gaussian one) are \emph{separable}. This means that one can replace a convolution with a large, square matrix by two one-dimensional convolutions. For example, gaussian blurring with $\sigma$ equal to 1 can be done by first convolving with 
+$$
+\begin{bmatrix}
+0.0540 & 0.2420 & 0.3989 & 0.2420 & 0.0540\\
+\end{bmatrix} 
+$$
+and afterwards with
+$$
+\begin{bmatrix}
+0.0540\\
+0.2420\\
+0.3989\\
+0.2420\\
+0.0540\\
+\end{bmatrix} 
+$$
+The values populating the matrices shown above are generated by the 1-dimensional gauss function. For example, the row matrix is generated as follows:
+$$\begin{bmatrix}
+g_\sigma(-2) & g_\sigma(-1) & g_\sigma(0) & g_\sigma(1) & g_\sigma(2)\\
+\end{bmatrix}$$
 
 \begin{exercise}
-Exploit the separability of the gauss kernel to implement fast gaussian blurring. Apply fast gaussian blurring with $\sigma$ equal to 10 to \texttt{earth-gray.png}. How many seconds does this take? How many pixels are examined for determining the new value of each pixel?
+Exploit the separability of the gauss kernel to implement fast gaussian blurring. Apply fast gaussian blurring with $\sigma$ equal to 10 to \texttt{earth.jpg}. How many seconds does this take? How many pixels are examined for determining the new value of each pixel?
 \end{exercise}
 
-
 % lens blur
-% blurring color images
 % cartoon style
-% noise removal with edge preservation
 % ...
 
-% applications: blurring incognito, noise removal (e.g. preprocessing to edge detection), transitions, unsharp mask, focus on foreground subject 
+% applications: noise removal (e.g. preprocessing to edge detection), transitions, unsharp mask, focus on foreground subject 
 
 \section{Dealing with Border Pixels}\label{sec:border-pixels}
+Part of the neighborhood of border pixels lies outside of the image. Therefore, the question arises on what color use for pixels ``outside'' of the image. There exist three main strategies: 
+\begin{itemize}
+  \item Assume that pixels outside of the image have a fixed color. This is the strategy that we have followed so far, as calling \co{getPixel} with a coordinate outside of the image returns 0.
+  \item Assume that the image horizontally and vertically cyclically repeats. 
+  \item Assume that border pixels continue outside of the image.
+\end{itemize}
 
+\begin{exercise}
+Modify the class \co{Convolution} such that the user can select an appropriate strategy for dealing with border pixels via a parameter of the constructor. 
+\end{exercise}
+
+%\begin{exercise}
 %transition
+%\end{exercise}
+%
+%\begin{exercise}
+%% noise removal with edge preservation
+%\end{exercise}
 
 
 \end{document}
