@@ -1,0 +1,219 @@
+\documentclass{article}
+
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage[table]{xcolor}
+\lstset{
+  language=Java,
+  basicstyle=\ttfamily\footnotesize,
+}
+\newcommand{\co}[1]{#1}
+
+%\newcommand{\co}[1]{\lstinline[language=Java, basicstyle=\ttfamily]{#1}}
+
+% \newcommand{\co}[1]{\lstinline[language=Java, basicstyle=\ttfamily]{#1}}
+
+\title{Digital Image Processing Assignment:\\Content-aware Scaling}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+Content-aware scaling\footnote{Content-aware scaling is also known as liquid scaling, retargetting or seam carving.} is technique for resizing images without changing important visual content such as people, buildings, animals, etc. While normal scaling uniformly affects all pixels, content-aware scaling mostly affects pixels in areas that don't have important visual content. As an example, consider the image from Figure~\ref{fig:tower}. Reducing the width of the image by 50\% using normal scaling results in the image from Figure~\ref{fig:tower-normal}. As all pixels are scaled uniformly, the person on the left and the castle on the right appear to be squeezed. However, when using content-aware scaling as in Figure~\ref{fig:tower-liquid}, mostly non-interesting pixels between the person and the castle are removed from the image.
+
+\begin{figure}[h]
+\begin{center}
+\subfigure[original image]{
+\includegraphics[scale=0.19]{tower.png}\label{fig:tower}
+}
+\subfigure[normal scaling]{
+\includegraphics[scale=0.19]{tower-normal-resize.png}\label{fig:tower-normal}
+}
+\subfigure[liquid scaling] {
+\includegraphics[scale=0.19]{tower-liquid-resize.png}\label{fig:tower-liquid}
+}
+\end{center}
+\end{figure}
+
+Content-aware scaling was invented by Shai Avidan and Ariel Shamir in 2007. A video describing their approach is available on \href{http://www.youtube.com/watch?v=6NcIJXTlugc}{YouTube}. Currently, the technique is implemented in \href{http://help.adobe.com/en\_US/Photoshop/11.0/WS6F81C45F-2AC0-4685-8FFD-DBA374BF21CD.html}{Photoshop} and \href{http://liquidrescale.wikidot.com/}{Gimp}. An online version is available at \href{http://swieskowski.net/carve/}{http://swieskowski.net/carve/}. The \texttt{examples} directory contains some additional example images.
+
+The goal of this assignment is to implement content-aware scaling.
+
+\section{Implementing Content-aware Scaling}\label{sec:implementing}
+The basic idea of content-aware scaling is to repeatedly select a vertical line of pixels that does not contain important visual content and to cut this line from the image. By repeatedly removing lines, the image can be resized to the desired width.
+
+Selecting and removing a single line takes four steps: (1) perform edge detection to compute the importance function, (2) compute the cumulative importance function, (3) select the line with minimal importance, and (4) cut this line from the image. In the remainder of this section, we explain each step in more detail.
+
+\subsection*{Step 1: Compute the Importance}
+The first step in the algorithm is to determine which pixels contain important visual content and which pixels do not. We implement this step by performing edge detection. That is, the importance of a pixel is determined by measuring the contrast with its neighbors: pixels on edges are thus considered to be important, while those in smooth areas are not. Computing the importance function consists of three substeps:
+\begin{enumerate}
+   \item Create a grayscale copy of the current image. If the current image is grayscale, then duplicate the \co{ImageProcessor}; otherwise, desaturate the current image to grayscale based on luminosity. That is, if the color of a pixel is $(r, g, b)$ in the current image, then the corresponding pixel in the copy has value $0.21r + 0.72g + 0.07b$. The grayscale copy of \texttt{tower.png} looks as follows:
+\begin{center}
+\includegraphics[scale=0.15]{tower-desaturated.png}
+\end{center}
+   \item Apply the Sobel operator to the grayscale copy to detect edges. That is, convolve the grayscale copy using the following kernel:
+$$\begin{bmatrix}
+0 & 1 & 0\\
+1 & -4 & 1\\
+0 & 1 & 0\\   
+\end{bmatrix}$$
+The result of applying the Sobel operator to the grayscale copy of \texttt{tower.png} looks as follows:
+\begin{center}
+\includegraphics[scale=0.15]{tower-edges.png}
+\end{center}
+  \item Finally, apply a 3x3 maximum filter to spread the influence of edges to nearby pixels. Applying the max filter results in the following image:
+\begin{center}
+\includegraphics[scale=0.15]{tower-edges-max.png}
+\end{center}
+In the image shown above, white pixels contain important visual content, while black pixels do not.
+\end{enumerate}
+
+\subsection*{Step 2: Compute the Cumulative Importance}
+In step 3, we want to select a vertical line from the top of the image to the bottom that does not contain important visual content, i.e. a line with low total importance. The total importance of a line is the sum of the importances of all pixels on that line. The question then is how to find the line with the lowest importance in an efficient manner.
+
+To be able to efficiently select the optimal line, we first compute the cumulative importance of each pixel. The cumulative importance of a pixel is the importance of the optimal line from a pixel in the top row to that pixel. The cumulative importance can be calculated row by row, starting at the top row and ending in the last. More specifically, the cumulative importance of a pixel in the top row is the importance of the pixel itself. For each subsequent row, the cumulative importance of a pixel is the minimum of the cumulative costs of the three pixels above that pixel plus the importance of the pixel itself.
+
+Let's look at an example. Suppose the output of step 1 (the importance function) is the following image matrix.
+\renewcommand\arraystretch{1.6}
+\begin{center}
+\begin{tabular}{| c | c | c | c | c | c |}
+\hline
+4 & 9 & 0 & 1 & 5 & 3\\
+\hline
+3 & 7 & 3 & 6 & 7 & 6\\
+\hline
+1 & 6 & 2 & 9 & 7 & 6\\
+\hline
+5 & 8 & 10 & 8 & 0 & 0\\
+\hline
+\end{tabular}
+\end{center}
+The cumulative importance function is a matrix with the same dimensions as the image. The input image has 4 rows and 6 columns, and hence the matrix has 4 rows and 6 columns. Each element in the matrix contains the cumulative importance of the corresponding pixel and the direction of the optimal line towards that pixel. The cumulative importance of a pixel in the top row is the importance of the pixel itself. Thus, we can copy the first row of the importance function into the cumulative importance function.
+\begin{center}
+\begin{tabular}{| c | c | c | c | c | c | c | c |}
+\hline
+4 $\uparrow$ & 9 $\uparrow$ & 0 $\uparrow$ & 1 $\uparrow$ & 5 $\uparrow$ & 3 $\uparrow$\\
+\hline
+\dots & \dots  & \dots  & \dots  & \dots  & \dots \\
+\hline
+\dots  & \dots  & \dots  & \dots  & \dots  & \dots \\
+\hline
+\dots  & \dots  & \dots  & \dots  & \dots  & \dots \\
+\hline
+\end{tabular}
+\end{center}
+For each subsequent row, the cumulative importance of a pixel is the minimum of the cumulative costs of the three pixels above that pixel plus the importance of the pixel itself. Once we have filled in the first row, we can fill in the second row.
+\begin{center}
+\begin{tabular}{| c | c | c | c | c | c | c | c |}
+\hline
+4 $\uparrow$ & 9 $\uparrow$ & 0 $\uparrow$ & 1 $\uparrow$ & 5 $\uparrow$ & 3 $\uparrow$\\
+\hline
+7 $\uparrow$ & 7 $\nearrow$   & 3 $\uparrow$  & 6 $\nwarrow$  & 8 $\nwarrow$  & 9 $\uparrow$\\
+\hline
+\dots  & \dots  & \dots  & \dots  & \dots  & \dots \\
+\hline
+\dots  & \dots  & \dots  & \dots  & \dots  & \dots \\
+\hline
+\end{tabular}
+\end{center}
+For example, the value 3 in the second row is the minimum of the cumulative importances of the pixel to the north-west (=9), the pixel to the north (=0) and the pixel to the north-east (=1) plus the importance of the pixel itself (=3). The arrow points to the north as the pixel to the north contains the minimum value. Similarly, the value 8 in the second row is the minimum of the cumulative importances of the pixel to the north-west (=1), the pixel to the north (=5) and the pixel to the north-east (=3) plus the importance of the pixel itself (=7). The arrow points to the north-west as the pixel to the north-west has minimum cumulative importance.
+
+The entire cumulative importance matrix looks as follows:
+\begin{center}
+\begin{tabular}{| c | c | c | c | c | c | c | c |}
+\hline
+4 $\uparrow$ & 9 $\uparrow$ & 0 $\uparrow$ & 1 $\uparrow$ & 5 $\uparrow$ & 3 $\uparrow$\\
+\hline
+7 $\uparrow$ & 7 $\nearrow$   & 3 $\uparrow$  & 6 $\nwarrow$  & 8 $\nwarrow$  & 9 $\uparrow$\\
+\hline
+8 $\uparrow$  & 9 $\nearrow$  & 5 $\uparrow$  & 12 $\nwarrow$  & 13 $\nwarrow$  & 14 $\nwarrow$ \\
+\hline
+13 $\uparrow$  & 13 $\nearrow$  & 15 $\uparrow$  & 13 $\nwarrow$  & 12 $\nwarrow$  & 13 $\nwarrow$ \\
+\hline
+\end{tabular}
+\end{center}
+One can for example deduce from the matrix that the optimal line from the top row to the bottom right element has total importance 14.
+
+The cumulative importance function can be represented in Java as two two-dimensional arrays.
+\begin{lstlisting}
+int[][] cumulativeImportance = new int[width][height];
+int[][] directions = new int[width][height];
+\end{lstlisting}
+The first array stores the cumulative importance itself, while the second array stores the direction. For example, the directions north-west, north and north-east can respectively be encoded as \co{-1}, \co{0} and \co{1}.
+
+\subsection*{Step 3: Select a Line with Minimal Importance}
+The cumulative importance function allows us to efficiently select a line with minimal importance. More specifically, examine the last row of the cumulative cost function and select the minimum element. Construct the line with minimal importance by following the arrows starting at this element. 
+
+Let's return to our example. The smallest element in the bottom row is 12. By following the arrows starting at this element, we can construct the line with minimal importance. This line is marked in yellow in the image matrix shown below.
+
+\begin{center}
+\begin{tabular}{| c | c | c | c | c | c | c | c |}
+\hline
+4 $\uparrow$ & 9 $\uparrow$ & 0 $\uparrow$\cellcolor{yellow} & 1 $\uparrow$ & 5 $\uparrow$ & 3 $\uparrow$\\
+\hline
+7 $\uparrow$ & 7 $\nearrow$   & 3 $\uparrow$\cellcolor{yellow}  & 6 $\nwarrow$  & 8 $\nwarrow$  & 9 $\uparrow$\\
+\hline
+8 $\uparrow$  & 9 $\nearrow$  & 5 $\uparrow$  & 12 $\nwarrow$\cellcolor{yellow}  & 13 $\nwarrow$  & 14 $\nwarrow$ \\
+\hline
+13 $\uparrow$  & 13 $\nearrow$  & 15 $\uparrow$  & 13 $\nwarrow$  & 12 $\nwarrow$\cellcolor{yellow}  & 13 $\nwarrow$ \\
+\hline
+\end{tabular}
+\end{center}
+
+The line with minimal importance can be stored in an array whose length is equal to the height of the image.
+\begin{lstlisting}
+int[] minimalline = new int[height];
+\end{lstlisting}
+The array stores for each row the column number of the line. In our example, \co{minimalline} has length 4. \co{minimalline[0]} is 2, \co{minimalline[1]} is 2, \co{minimalline[2]} is 3 and \co{minimalline[3]} is 4.
+
+The first line selected for removal in \texttt{tower.png} is highlighted in red below\footnote{Due to minor differences in the implementation, it is possible that you select a different line.}.
+\begin{center}
+\includegraphics[scale=0.15]{tower-line.png}
+\end{center}
+
+\subsection*{Step 4: Remove the Line}
+To remove the line, create a new image whose width is one less than the width of the current image and whose height is equal to the height of the current image. All pixels to the left of the selected line can simply be copied from the current image to the new image. All pixels to the right of the line must be moved one step to the left.
+
+The four steps described above remove a single vertical line from the image. To remove multiple lines, steps 1 to 4 must be applied repeatedly.
+
+\section{Submitting}
+The deadline for this assignment is May 25th 2012. Submit your solution by uploading a zip file to \texttt{Export/GT/Dropbox/jasma/dip-assignment}. This zip file should contain the following:
+\begin{itemize}
+  \item An executable jar file named \texttt{ContentAwareScaling.jar}. The command
+\begin{verbatim}
+java -jar ContentAwareScaling.jar
+\end{verbatim}
+should start your program. You can either create a graphical user interface or interact with the user via the command-line.
+  \item A directory named \texttt{src} containing your Java source files.
+  \item A directory named \texttt{myexamples} containing your own resized images. Include both the original and the resized images. 
+  \item An html file named \texttt{README.html} describing your submission. This document should explain how to execute the jar file and how to compile your Java sources. In addition, the document should mention which extensions of the assignment you implemented. 
+\end{itemize}
+
+25\% of the grades of this course are based on this assignment. Each student must complete the assignment individually. While you are allowed to discuss the algorithms related to the assignment with your fellow students, you should never view or posses the solution - in particular the code - made by other students.
+
+\section{Extensions}
+By implementing the approach described in Section~\ref{sec:implementing}, you can obtain a maximum score of 3.5/5 for this assignment. To obtain a higher score, you must implement one or more extensions described below. 
+
+\subsection*{Changing the height}
+The approach described in Section~\ref{sec:implementing} modifies the width of the image, but not its height. Extend your program such that the user can select the number of horizontal lines to remove in addition to the number of vertical lines.
+
+\subsection*{Protecting Pixels}
+Content-aware scaling uses edge detection to determine whether a pixel contains important visual content. Alas, this heuristic does not always work well and sometimes important visual content is removed from the image. Allow the user to indicate that certain pixels should not be removed. Implement this feature by overwriting the corresponding values in the importance function with high values to prevent these pixels from being selected for removal. This feature is demonstrated between 3:19 and 3:42 in the \href{http://www.youtube.com/watch?v=6NcIJXTlugc}{YouTube video}.  
+
+\subsection*{Prioritizing Pixels for Removal}
+Sometimes a user is interested in removing a particular object or person from an image. Allow the user to indicate that certain pixels should be removed first. Implement this feature by overwriting the corresponding values in the importance function with 0 (or even a negative value). This feature is demonstrated between 3:42 and 4:12 in the \href{http://www.youtube.com/watch?v=6NcIJXTlugc}{YouTube video}.  
+
+\subsection*{Enlarging Images}
+Content-aware scaling can not only be used to shrink images, but also to enlarge them. The key idea is to modify step 4. In particular, instead of removing the selected line, insert a new line. Each pixel of the new line is the average of the pixel on the left and the pixel on the right. This feature is demonstrated between 2:31 and 2:51 in the \href{http://www.youtube.com/watch?v=6NcIJXTlugc}{YouTube video}.
+
+\subsection*{Upload to Facebook}
+Extend your program with a button (or command-line switch) to upload resized images to Facebook (from within your Java program).
+
+\subsection*{Improving Performance}
+Content-aware scaling is a computationally expensive operation. Particularly for large images, resizing can take minutes. Improve the performance of content-aware scaling. For example, select and remove multiple (non-overlapping) lines in a single iteration in steps 3 and 4.
+
+\end{document}
